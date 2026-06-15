@@ -1,0 +1,4791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FAB SURVIVAL">
+<meta name="theme-color" content="#0f380f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>팹에서 살아남기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gb-darkest:  #0f380f;
+    --gb-dark:     #306230;
+    --gb-light:    #8bac0f;
+    --gb-lightest: #9bbc0f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #1a1a1a;
+    overflow: hidden;
+    font-family: 'Press Start 2P', 'DotGothic16', monospace;
+    -webkit-font-smoothing: none;
+    image-rendering: pixelated;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  .gameboy {
+    width: min(95vw, 480px);
+    aspect-ratio: 160 / 144;
+    background: var(--gb-lightest);
+    border: 8px solid var(--gb-darkest);
+    box-shadow:
+      0 0 0 2px var(--gb-lightest),
+      0 0 0 10px var(--gb-darkest),
+      0 20px 40px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+
+  .gameboy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,
+      rgba(15, 56, 15, 0.06) 0px, rgba(15, 56, 15, 0.06) 2px,
+      transparent 2px, transparent 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    padding: 12px;
+    color: var(--gb-darkest);
+    font-size: clamp(6px, 1.4vw, 9px);
+    line-height: 1.6;
+  }
+
+  .sound-toggle {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    z-index: 200;
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    border: none;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .sound-toggle:hover { background: var(--gb-dark); }
+
+  .screen-view {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+  }
+  .screen-view.active { display: flex; }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* ====== TITLE ====== */
+  #title {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 14px;
+  }
+  .title-logo {
+    font-size: clamp(11px, 2.6vw, 18px);
+    color: var(--gb-darkest);
+    letter-spacing: 1px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    text-shadow: 2px 2px 0 var(--gb-light);
+  }
+  .title-sub {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(9px, 1.8vw, 13px);
+    color: var(--gb-dark);
+  }
+  .title-blink {
+    margin-top: 14px;
+    font-size: clamp(6px, 1.3vw, 9px);
+    color: var(--gb-darkest);
+    animation: blink 1s infinite;
+    cursor: pointer;
+  }
+  .title-footer {
+    position: absolute;
+    bottom: 14px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(7px, 1.3vw, 10px);
+    color: var(--gb-dark);
+  }
+  .title-art {
+    width: 80px;
+    height: 80px;
+    image-rendering: pixelated;
+  }
+
+  /* ====== INTRO ====== */
+  #intro {
+    padding: 18px;
+    justify-content: flex-end;
+  }
+  .intro-box {
+    border: 3px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    padding: 10px 12px;
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(10px, 1.9vw, 14px);
+    line-height: 1.7;
+    min-height: 100px;
+    position: relative;
+  }
+  .intro-cursor {
+    display: inline-block;
+    animation: blink 0.6s infinite;
+  }
+  .intro-next {
+    text-align: right;
+    margin-top: 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 8px);
+    color: var(--gb-darkest);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .intro-next.show { opacity: 1; animation: blink 1s infinite; }
+
+  /* ====== SAFER 차트 모달 ====== */
+  .safer-modal-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15,56,15,0.7);
+    align-items: center;
+    justify-content: center;
+  }
+  .safer-modal-overlay.show { display: flex; }
+  .safer-modal {
+    background: var(--gb-lightest);
+    border: 3px solid var(--gb-darkest);
+    box-shadow: 4px 4px 0 var(--gb-darkest);
+    padding: 8px;
+    width: 90%;
+    max-width: 280px;
+  }
+  .safer-modal-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px,1.2vw,8px);
+    color: var(--gb-darkest);
+    text-align: center;
+    border-bottom: 2px solid var(--gb-darkest);
+    padding-bottom: 5px;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .safer-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  .safer-chart-box {
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    padding: 4px;
+  }
+  .safer-chart-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(4px,0.9vw,6px);
+    color: var(--gb-dark);
+    margin-bottom: 3px;
+    letter-spacing: 0.5px;
+  }
+  .safer-chart-value {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(10px,1.8vw,12px);
+    color: var(--gb-darkest);
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+  .safer-chart-bar-wrap {
+    height: 6px;
+    background: var(--gb-light);
+    border: 1px solid var(--gb-darkest);
+    margin-bottom: 2px;
+    overflow: hidden;
+  }
+  .safer-chart-bar {
+    height: 100%;
+    background: var(--gb-darkest);
+    transition: width 1s ease-out;
+  }
+  .safer-chart-status {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(4px,0.8vw,5px);
+    color: var(--gb-dark);
+    letter-spacing: 0.5px;
+  }
+  .safer-chart-status.ok { color: var(--gb-darkest); }
+  .safer-modal-close {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px,1.1vw,8px);
+    color: var(--gb-darkest);
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    padding: 4px 8px;
+    cursor: pointer;
+    margin-top: 6px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 2px 2px 0 var(--gb-darkest);
+  }
+  .safer-modal-close:hover { background: var(--gb-lightest); }
+
+  /* ====== MAP ====== */
+  #map {
+    padding: 6px;
+    position: relative;
+  }
+  .map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px 4px 4px;
+    border-bottom: 2px solid var(--gb-darkest);
+    padding-right: 30px;
+  }
+  .map-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(7px, 1.4vw, 10px);
+    color: var(--gb-darkest);
+  }
+  .map-status {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(9px, 1.6vw, 12px);
+    color: var(--gb-dark);
+  }
+  .map-area {
+    flex: 1;
+    position: relative;
+    padding: 4px 0;
+    min-height: 0;
+  }
+  .map-svg {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    display: block;
+  }
+  .map-char {
+    cursor: pointer;
+  }
+  .map-char:hover {
+    transform: translateY(-1px);
+  }
+  .map-hint {
+    margin-top: 4px;
+    text-align: center;
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(8px, 1.4vw, 11px);
+    color: var(--gb-darkest);
+    padding: 4px 8px;
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    line-height: 1.5;
+  }
+  .key-icon {
+    display: inline-block;
+    padding: 1px 4px;
+    border: 1px solid var(--gb-darkest);
+    background: var(--gb-light);
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(5px, 0.9vw, 7px);
+    color: var(--gb-darkest);
+    margin: 0 1px;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+    box-shadow: 1px 1px 0 var(--gb-darkest);
+    line-height: 1.2;
+  }
+  .key-icon.action {
+    background: var(--gb-lightest);
+    animation: blink 1s infinite;
+  }
+
+  /* ============================================================
+     STORY MODE (챕터별 미션)
+     ============================================================ */
+  #story {
+    padding: 8px;
+    position: relative;
+    background: var(--gb-lightest);
+  }
+  .story-stage {
+    flex: 1;
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .story-stage-bg {
+    position: absolute;
+    inset: 0;
+    image-rendering: pixelated;
+  }
+  .story-chapter-tag {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.1vw, 8px);
+    color: var(--gb-darkest);
+    background: var(--gb-lightest);
+    padding: 2px 5px;
+    border: 1.5px solid var(--gb-darkest);
+    z-index: 10;
+    letter-spacing: 1px;
+  }
+  .story-dialog {
+    margin-top: 6px;
+    border: 3px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    padding: 8px 10px 6px;
+    min-height: 52px;
+    position: relative;
+  }
+  .story-dialog-text {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(11px, 1.9vw, 14px);
+    color: var(--gb-darkest);
+    line-height: 1.6;
+  }
+  .story-dialog-next {
+    text-align: right;
+    margin-top: 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 8px);
+    color: var(--gb-darkest);
+    animation: blink 1s infinite;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .story-char-art {
+    width: 70%;
+    max-width: 120px;
+    image-rendering: pixelated;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* 라인폰 UI */
+  .phone-frame {
+    background: var(--gb-darkest);
+    border-radius: 8px;
+    padding: 10px 8px;
+    width: 70%;
+    max-width: 200px;
+    border: 2px solid var(--gb-dark);
+    position: relative;
+    z-index: 2;
+  }
+  .phone-screen {
+    background: var(--gb-lightest);
+    padding: 6px 5px;
+    min-height: 110px;
+    border: 1px solid var(--gb-dark);
+  }
+  .phone-header {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    text-align: center;
+    color: var(--gb-darkest);
+    border-bottom: 1px solid var(--gb-dark);
+    padding-bottom: 3px;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .phone-app {
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    color: var(--gb-darkest);
+    padding: 3px 5px;
+    margin: 1px 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .phone-app:hover { background: var(--gb-light); }
+  .phone-app.selected {
+    background: var(--gb-light);
+    font-weight: bold;
+  }
+  .phone-app-arrow {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--gb-dark);
+  }
+  .phone-call-btn {
+    width: 100%;
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    border: none;
+    padding: 4px;
+    margin-top: 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+  }
+  .phone-call-btn:hover { background: var(--gb-dark); }
+  .phone-home {
+    width: 30px;
+    height: 4px;
+    background: var(--gb-light);
+    border-radius: 2px;
+    margin: 4px auto 0;
+  }
+
+  /* 인증/체크 카드 */
+  .story-card {
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-darkest);
+    padding: 10px 12px;
+    width: 80%;
+    max-width: 280px;
+    position: relative;
+    z-index: 2;
+  }
+  .story-card-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(7px, 1.3vw, 9px);
+    color: var(--gb-darkest);
+    margin-bottom: 6px;
+    text-align: center;
+    border-bottom: 1px dashed var(--gb-dark);
+    padding-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .story-input {
+    width: 100%;
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    padding: 4px 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: var(--gb-darkest);
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+    outline: none;
+  }
+  .story-check-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 13px;
+    color: var(--gb-darkest);
+    cursor: pointer;
+  }
+  .story-checkbox {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--gb-darkest);
+  }
+  .story-checkbox.checked::after { content: '✓'; }
+  .story-btn {
+    width: 100%;
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    border: none;
+    padding: 6px;
+    margin-top: 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+  }
+  .story-btn:hover { background: var(--gb-dark); }
+  .story-btn:disabled {
+    background: var(--gb-dark);
+    color: var(--gb-light);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* 목적지 리스트 */
+  .dest-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .dest-item {
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    padding: 6px;
+    text-align: center;
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--gb-darkest);
+    letter-spacing: 1px;
+  }
+  .dest-item:hover { background: var(--gb-lightest); }
+  .dest-item.selected {
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+  }
+  .dest-item.recommended::after {
+    content: ' ●';
+    color: var(--gb-darkest);
+    animation: blink 1s infinite;
+  }
+  .dest-item.selected.recommended::after { color: var(--gb-lightest); }
+
+  /* 이동 미니맵 */
+  .travel-map {
+    width: 90%;
+    max-width: 280px;
+    height: 70px;
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    position: relative;
+    z-index: 2;
+    image-rendering: pixelated;
+  }
+  .travel-track {
+    position: absolute;
+    top: 50%;
+    left: 8%;
+    right: 8%;
+    height: 3px;
+    background: var(--gb-darkest);
+    transform: translateY(-50%);
+  }
+  .travel-track::before, .travel-track::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    background: var(--gb-darkest);
+    border-radius: 50%;
+    transform: translateY(-50%);
+  }
+  .travel-track::before { left: -5px; }
+  .travel-track::after { right: -5px; }
+  .travel-dot {
+    position: absolute;
+    top: 50%;
+    left: 8%;
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    transition: left 2.5s steps(20, end);
+    image-rendering: pixelated;
+  }
+  .travel-label-from, .travel-label-to {
+    position: absolute;
+    bottom: 4px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: var(--gb-darkest);
+  }
+  .travel-label-from { left: 4px; }
+  .travel-label-to { right: 4px; }
+
+  /* ===== FAB 맵 위 RIDE 이동 장면 (Step 6) ===== */
+  .fab-travel-wrap {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 6px;
+    align-items: center;
+  }
+  .fab-travel-svg {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    border: 2px solid var(--gb-darkest);
+    image-rendering: pixelated;
+    display: block;
+  }
+  .fab-progress {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .fab-progress-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1vw, 8px);
+    color: var(--gb-darkest);
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .fab-progress-bar {
+    height: 14px;
+    background: var(--gb-dark);
+    border: 2px solid var(--gb-darkest);
+    overflow: hidden;
+    box-shadow: 1px 1px 0 var(--gb-darkest);
+  }
+  .fab-progress-fill {
+    background: var(--gb-darkest);
+    height: 100%;
+    width: 0;
+    transition: width 4s linear;
+  }
+
+  /* ===== 출발지/목적지 선택 화면 ===== */
+  .route-select-wrap {
+    width: 95%;
+    max-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .route-section {
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    padding: 3px 5px;
+  }
+  .route-section-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: var(--gb-dark);
+    margin-bottom: 3px;
+    letter-spacing: 1px;
+  }
+  .route-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .route-option {
+    font-family: 'DotGothic16', monospace;
+    font-size: 10px;
+    padding: 2px 5px;
+    border: 1px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    cursor: pointer;
+    color: var(--gb-darkest);
+    position: relative;
+  }
+  .route-option:hover {
+    background: var(--gb-light);
+  }
+  .route-option.selected {
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+  }
+  .route-option.recommended::after {
+    content: '★';
+    position: absolute;
+    top: -5px;
+    right: -3px;
+    font-size: 8px;
+    color: var(--gb-dark);
+  }
+  .route-option.recommended.selected::after {
+    color: var(--gb-lightest);
+  }
+  .route-call-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--gb-lightest);
+    background: var(--gb-darkest);
+    border: 2px solid var(--gb-darkest);
+    padding: 6px 8px;
+    cursor: pointer;
+    margin-top: 3px;
+    letter-spacing: 1px;
+  }
+  .route-call-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .route-call-btn:not(:disabled) {
+    animation: blink 1.4s infinite;
+  }
+
+  /* ===== 픽업/탑승 장면 (출발지에서) ===== */
+  .pickup-scene {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+  .pickup-svg {
+    width: 100%;
+    height: auto;
+    border: 2px solid var(--gb-darkest);
+    image-rendering: pixelated;
+    display: block;
+  }
+  .pickup-hint {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1vw, 8px);
+    color: var(--gb-darkest);
+    text-align: center;
+    padding: 3px 6px;
+    background: var(--gb-light);
+    border: 1px solid var(--gb-darkest);
+  }
+  .pickup-hint.action {
+    animation: blink 0.8s infinite;
+    background: var(--gb-lightest);
+  }
+  .pickup-ride-clickable {
+    cursor: pointer;
+  }
+  .pickup-ride-clickable:hover {
+    filter: brightness(1.15);
+  }
+
+  /* SAFER 백그라운드 말풍선 */
+  .safer-bg {
+    position: absolute;
+    top: 8px;
+    right: 4px;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .safer-mini {
+    width: 28px;
+    height: 28px;
+    image-rendering: pixelated;
+  }
+  .safer-bubble {
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-darkest);
+    padding: 3px 6px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 10px;
+    color: var(--gb-darkest);
+    white-space: nowrap;
+    position: relative;
+    margin-right: 2px;
+    box-shadow: 1px 1px 0 var(--gb-darkest);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .safer-bubble.show { opacity: 1; }
+  .safer-bubble::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -6px;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 5px solid var(--gb-darkest);
+  }
+
+  /* 챕터 클리어 화면 */
+  .chapter-clear {
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    padding: 14px;
+    text-align: center;
+    width: 80%;
+    max-width: 260px;
+    position: relative;
+    z-index: 2;
+    border: 2px solid var(--gb-lightest);
+  }
+  .chapter-clear-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(9px, 1.7vw, 12px);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  .chapter-clear-msg {
+    font-family: 'DotGothic16', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+    color: var(--gb-light);
+  }
+  .chapter-clear-next {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    animation: blink 1s infinite;
+    color: var(--gb-lightest);
+  }
+
+  /* ====== Tutorial Overlay ====== */
+  .tutorial-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(15, 56, 15, 0.55);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    animation: fadeIn 0.2s;
+  }
+  .tutorial-overlay.show { display: flex; }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .tutorial-box {
+    background: var(--gb-lightest);
+    border: 3px solid var(--gb-darkest);
+    padding: 12px 14px 10px;
+    width: 82%;
+    max-width: 280px;
+    position: relative;
+    box-shadow: 4px 4px 0 var(--gb-darkest);
+  }
+  .tutorial-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(7px, 1.4vw, 10px);
+    color: var(--gb-darkest);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+    text-align: center;
+    border-bottom: 1px dashed var(--gb-darkest);
+    padding-bottom: 6px;
+  }
+  .tutorial-row {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(10px, 1.8vw, 13px);
+    color: var(--gb-darkest);
+    text-align: center;
+    line-height: 1.9;
+  }
+  .tutorial-close {
+    text-align: center;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--gb-darkest);
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 8px);
+    color: var(--gb-darkest);
+    animation: blink 1s infinite;
+  }
+  .map-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .map-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 8px);
+    color: var(--gb-darkest);
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-darkest);
+    padding: 4px 8px;
+    cursor: pointer;
+    image-rendering: pixelated;
+  }
+  .map-btn:hover {
+    background: var(--gb-light);
+  }
+
+  /* ====== ENCOUNTER ====== */
+  #encounter {
+    background: var(--gb-darkest);
+    padding: 0;
+    position: relative;
+  }
+  .enc-top {
+    flex: 1;
+    background: var(--gb-lightest);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 4px solid var(--gb-darkest);
+  }
+  /* 인카운터 도트 패턴 (게임보이 RPG 풍 어두운 반점) */
+  .enc-top::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 12% 22%, var(--gb-dark) 0%, var(--gb-dark) 1px, transparent 1.5px),
+      radial-gradient(circle at 88% 18%, var(--gb-dark) 0%, var(--gb-dark) 1px, transparent 1.5px),
+      radial-gradient(circle at 18% 78%, var(--gb-dark) 0%, var(--gb-dark) 1px, transparent 1.5px),
+      radial-gradient(circle at 82% 82%, var(--gb-dark) 0%, var(--gb-dark) 1px, transparent 1.5px),
+      radial-gradient(circle at 45% 12%, var(--gb-dark) 0%, var(--gb-dark) 1px, transparent 1.5px),
+      radial-gradient(circle at 55% 90%, var(--gb-dark) 0%, var(--gb-dark) 1px, transparent 1.5px);
+    background-size: 100% 100%;
+    opacity: 0.5;
+    animation: sparkle 0.8s infinite steps(2);
+  }
+  @keyframes sparkle {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(2px, 1px); }
+    100% { transform: translate(0, 0); }
+  }
+  /* 인카운터 코너 마크 (RPG 풍) */
+  .enc-top::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    border: 2px solid var(--gb-darkest);
+    pointer-events: none;
+    opacity: 0.4;
+  }
+  .enc-art {
+    width: 50%;
+    max-width: 140px;
+    image-rendering: pixelated;
+    position: relative;
+    z-index: 2;
+    animation: encEnter 0.6s ease-out;
+  }
+  @keyframes encEnter {
+    0% { transform: translateX(100px) scale(0.5); opacity: 0; }
+    50% { transform: translateX(-10px) scale(1.1); opacity: 1; }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+  }
+  .enc-bottom {
+    background: var(--gb-lightest);
+    padding: 10px 12px;
+    border-top: 3px solid var(--gb-darkest);
+    min-height: 38%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .enc-title {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(11px, 2.1vw, 15px);
+    color: var(--gb-darkest);
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .enc-quote {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(10px, 1.8vw, 13px);
+    color: var(--gb-dark);
+    font-style: italic;
+    margin-bottom: 4px;
+  }
+  .enc-class {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.1vw, 8px);
+    color: var(--gb-dark);
+    margin-bottom: 6px;
+  }
+  .enc-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+  }
+  .enc-register {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(7px, 1.3vw, 9px);
+    color: var(--gb-darkest);
+    cursor: pointer;
+    animation: blink 1s infinite;
+  }
+  .enc-info {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(9px, 1.6vw, 11px);
+    color: var(--gb-dark);
+    cursor: pointer;
+  }
+  .enc-info:hover { color: var(--gb-darkest); }
+
+  /* ====== DEX ====== */
+  #dex { padding: 10px; position: relative; }
+  .dex-story-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 8px);
+    color: var(--gb-darkest);
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    padding: 4px 6px;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 2px 2px 0 var(--gb-darkest);
+    letter-spacing: 0.5px;
+    display: none;
+    animation: blink 1.4s infinite;
+  }
+  .dex-story-btn.show { display: block; }
+  .dex-story-btn:hover {
+    background: var(--gb-lightest);
+  }
+  
+  /* 맵 우측 하단 챕터1 진입 버튼 */
+  .map-story-btn {
+    position: absolute;
+    bottom: 4px;
+    right: 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(5px, 1vw, 7px);
+    color: var(--gb-darkest);
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    padding: 4px 6px;
+    cursor: pointer;
+    z-index: 20;
+    box-shadow: 2px 2px 0 var(--gb-darkest);
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    text-align: center;
+    animation: blink 1.4s infinite;
+  }
+  .map-story-btn:hover {
+    background: var(--gb-lightest);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--gb-darkest);
+  }
+  .map-story-btn .small {
+    font-size: clamp(4px, 0.8vw, 5px);
+    color: var(--gb-dark);
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 2px;
+  }
+  .dex-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--gb-darkest);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    padding-right: 28px;
+  }
+  .dex-title {
+    font-size: clamp(7px, 1.5vw, 11px);
+    color: var(--gb-darkest);
+  }
+  .dex-count {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(9px, 1.7vw, 12px);
+    color: var(--gb-dark);
+  }
+  .dex-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    flex: 1;
+  }
+  .dex-card {
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 2px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    position: relative;
+  }
+  .dex-card:hover {
+    background: var(--gb-light);
+    transform: translateY(-1px);
+  }
+  .dex-card.locked {
+    background: var(--gb-dark);
+    cursor: not-allowed;
+  }
+  .dex-card.locked:hover {
+    background: var(--gb-dark);
+    transform: none;
+  }
+  .dex-card.locked svg {
+    filter: brightness(0.3);
+    opacity: 0.6;
+  }
+  .dex-card.locked .dex-card-name,
+  .dex-card.locked .dex-card-num {
+    color: var(--gb-light);
+  }
+  .dex-card-num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(5px, 1vw, 7px);
+    color: var(--gb-dark);
+    margin-bottom: 2px;
+  }
+  .dex-card svg {
+    width: 70%;
+    height: auto;
+    image-rendering: pixelated;
+    margin: 2px 0;
+  }
+  .dex-card-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(5px, 1vw, 7px);
+    color: var(--gb-darkest);
+    text-align: center;
+    margin-top: 2px;
+  }
+  .dex-footer {
+    margin-top: 8px;
+    text-align: center;
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(8px, 1.5vw, 11px);
+    color: var(--gb-dark);
+  }
+
+  /* ====== DETAIL ====== */
+  #detail { padding: 10px; }
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--gb-darkest);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    padding-right: 28px;
+  }
+  .detail-back {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 9px);
+    color: var(--gb-darkest);
+    cursor: pointer;
+  }
+  .detail-back:hover { color: var(--gb-dark); }
+  .detail-num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 9px);
+    color: var(--gb-dark);
+  }
+  .detail-body {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    gap: 8px;
+    flex: 1;
+  }
+  .detail-art {
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+  }
+  .detail-art svg {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+  .detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .detail-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(8px, 1.5vw, 11px);
+    color: var(--gb-darkest);
+  }
+  .detail-class {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(9px, 1.7vw, 12px);
+    color: var(--gb-dark);
+    margin-bottom: 2px;
+  }
+  .detail-desc {
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    padding: 4px 6px;
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(9px, 1.6vw, 12px);
+    line-height: 1.5;
+    flex: 1;
+  }
+  .detail-quote {
+    margin-top: 4px;
+    text-align: center;
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(8px, 1.5vw, 11px);
+    color: var(--gb-dark);
+    border-top: 1px dashed var(--gb-dark);
+    padding-top: 4px;
+  }
+
+  /* ====== ENDING ====== */
+  #ending {
+    background: var(--gb-darkest);
+    padding: 20px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .ending-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(11px, 2.4vw, 16px);
+    color: var(--gb-lightest);
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+  .ending-msg {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(11px, 2vw, 14px);
+    color: var(--gb-light);
+    margin: 12px 0;
+    line-height: 1.6;
+  }
+  .ending-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(7px, 1.3vw, 9px);
+    color: var(--gb-darkest);
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-lightest);
+    padding: 6px 12px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .ending-btn:hover { background: var(--gb-light); }
+  .ending-btn-primary {
+    background: var(--gb-light);
+    box-shadow: 2px 2px 0 var(--gb-lightest);
+    animation: blink 1.4s infinite;
+  }
+
+  /* ====== STORY MODE ====== */  #story {
+    padding: 8px;
+    position: relative;
+    background: var(--gb-lightest);
+  }
+  .story-header {
+    text-align: center;
+    border-bottom: 2px solid var(--gb-darkest);
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+  }
+  .story-chapter {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 9px);
+    color: var(--gb-dark);
+    letter-spacing: 2px;
+  }
+  .story-title {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(11px, 2vw, 14px);
+    color: var(--gb-darkest);
+    font-weight: bold;
+    margin-top: 2px;
+  }
+  .story-stage {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .story-dialog {
+    border: 3px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    padding: 8px 10px;
+    min-height: 56px;
+    position: relative;
+    box-shadow: 2px 2px 0 var(--gb-darkest);
+  }
+  .story-text {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(10px, 1.8vw, 13px);
+    color: var(--gb-darkest);
+    line-height: 1.6;
+  }
+  .story-next {
+    text-align: right;
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(6px, 1.2vw, 8px);
+    color: var(--gb-darkest);
+    margin-top: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .story-next.show { opacity: 1; animation: blink 1s infinite; }
+
+  /* SAFER 말풍선 (오른쪽 위 작게) */
+  .safer-bubble {
+    position: absolute;
+    top: 6px;
+    right: 36px;
+    background: var(--gb-lightest);
+    border: 1.5px solid var(--gb-darkest);
+    padding: 3px 6px 3px 4px;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 1px 1px 0 var(--gb-darkest);
+    z-index: 30;
+    animation: saferIn 0.3s;
+  }
+  .safer-bubble.show { display: flex; }
+  @keyframes saferIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .safer-mini {
+    width: 14px;
+    height: 14px;
+    image-rendering: pixelated;
+  }
+  .safer-text {
+    font-family: 'DotGothic16', monospace;
+    font-size: clamp(8px, 1.3vw, 10px);
+    color: var(--gb-darkest);
+    white-space: nowrap;
+  }
+
+  /* ===== 라인폰 UI ===== */
+  .linephone {
+    width: 88px;
+    height: 130px;
+    background: var(--gb-darkest);
+    border: 3px solid var(--gb-darkest);
+    border-radius: 6px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 3px 3px 0 var(--gb-dark);
+  }
+  .linephone-screen {
+    flex: 1;
+    background: var(--gb-lightest);
+    border-radius: 2px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+  }
+  .linephone-status {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 4px;
+    color: var(--gb-dark);
+    letter-spacing: 0.5px;
+  }
+  .linephone-app {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: var(--gb-darkest);
+    background: var(--gb-light);
+    border: 1px solid var(--gb-darkest);
+    padding: 3px 6px;
+    margin-top: 2px;
+    cursor: pointer;
+    animation: blink 1.4s infinite;
+  }
+  .linephone-app:hover { background: var(--gb-lightest); }
+  .linephone-icon {
+    font-size: 18px;
+    color: var(--gb-darkest);
+  }
+  .linephone-label {
+    font-family: 'DotGothic16', monospace;
+    font-size: 9px;
+    color: var(--gb-darkest);
+    font-weight: bold;
+  }
+  .linephone-home {
+    width: 14px;
+    height: 4px;
+    background: var(--gb-lightest);
+    border-radius: 2px;
+    margin: 4px auto 0;
+  }
+
+  /* 호출중 핑 애니메이션 */
+  .ping-circle {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ping-circle::before,
+  .ping-circle::after {
+    content: '';
+    position: absolute;
+    border: 2px solid var(--gb-dark);
+    border-radius: 50%;
+    animation: ping 1.4s infinite;
+  }
+  .ping-circle::before {
+    width: 30px;
+    height: 30px;
+    animation-delay: 0s;
+  }
+  .ping-circle::after {
+    width: 50px;
+    height: 50px;
+    animation-delay: 0.4s;
+  }
+  @keyframes ping {
+    0% { transform: scale(0.4); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+  .ping-center {
+    width: 16px;
+    height: 16px;
+    background: var(--gb-darkest);
+    border-radius: 50%;
+    z-index: 1;
+    animation: pingPulse 1s infinite;
+  }
+  @keyframes pingPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  /* ===== 사번 인증 키패드 ===== */
+  .keypad-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .keypad-display {
+    width: 100px;
+    height: 22px;
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    color: var(--gb-darkest);
+    letter-spacing: 4px;
+  }
+  .keypad-display .cursor {
+    animation: blink 0.6s infinite;
+  }
+  .keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+  }
+  .keypad-btn {
+    width: 22px;
+    height: 18px;
+    background: var(--gb-darkest);
+    color: var(--gb-lightest);
+    border: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0 var(--gb-dark);
+  }
+  .keypad-btn:active { transform: translate(1px, 1px); box-shadow: none; }
+  .keypad-btn.hint {
+    background: var(--gb-light);
+    color: var(--gb-darkest);
+    animation: blink 0.8s infinite;
+  }
+
+  /* ===== 안전벨트 체크 ===== */
+  .seatbelt-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .seatbelt-visual {
+    width: 80px;
+    height: 70px;
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    position: relative;
+    image-rendering: pixelated;
+  }
+  .seatbelt-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-darkest);
+    padding: 4px 10px;
+    box-shadow: 2px 2px 0 var(--gb-darkest);
+    font-family: 'DotGothic16', monospace;
+    font-size: 12px;
+    color: var(--gb-darkest);
+  }
+  .seatbelt-checkbox:hover { background: var(--gb-light); }
+  .seatbelt-box {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--gb-darkest);
+    background: var(--gb-lightest);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--gb-darkest);
+  }
+  .seatbelt-checkbox.checked .seatbelt-box::after {
+    content: '✓';
+  }
+
+  /* ===== 목적지 선택 ===== */
+  .destination-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 90%;
+    max-width: 240px;
+  }
+  .destination-btn {
+    background: var(--gb-lightest);
+    border: 2px solid var(--gb-darkest);
+    padding: 5px 8px;
+    cursor: pointer;
+    font-family: 'DotGothic16', monospace;
+    font-size: 12px;
+    color: var(--gb-darkest);
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 1px 1px 0 var(--gb-darkest);
+  }
+  .destination-btn:hover {
+    background: var(--gb-light);
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--gb-darkest);
+  }
+  .destination-btn.correct {
+    background: var(--gb-light);
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 1px 1px 0 var(--gb-darkest); }
+    50% { box-shadow: 2px 2px 0 var(--gb-darkest); transform: translate(-0.5px, -0.5px); }
+  }
+  .destination-tag {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--gb-dark);
+  }
+
+  /* ===== 이동 진행바 ===== */
+  .travel-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .travel-map {
+    width: 100%;
+    height: 60px;
+    background: var(--gb-light);
+    border: 2px solid var(--gb-darkest);
+    position: relative;
+    image-rendering: pixelated;
+    overflow: hidden;
+  }
+  .travel-vehicle {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    top: 14px;
+    left: 4px;
+    transition: left 4s linear;
+    image-rendering: pixelated;
+  }
+  .travel-progress {
+    width: 70%;
+    height: 8px;
+    background: var(--gb-dark);
+    border: 1px solid var(--gb-darkest);
+    overflow: hidden;
+  }
+  .travel-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--gb-darkest);
+    transition: width 4s linear;
+  }
+  .travel-status {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    color: var(--gb-darkest);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="gameboy">
+  <div class="screen">
+    <button class="sound-toggle" id="sound-btn" onclick="toggleSound()" title="사운드">♪</button>
+
+    <!-- TITLE -->
+    <div id="title" class="screen-view active">
+      <svg class="title-art" viewBox="0 0 24 24" shape-rendering="crispEdges">
+        <use href="#engineer-sprite"/>
+      </svg>
+      <div class="title-logo">FAB<br>SURVIVAL</div>
+      <div class="title-sub">팹에서 살아남기</div>
+      <div class="title-blink" onclick="goIntro()">▶ PRESS START</div>
+      <div class="title-footer">DIGITAL TWIN CENTER<br>© CONNECT</div>
+    </div>
+
+    <!-- INTRO -->
+    <div id="intro" class="screen-view">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" shape-rendering="crispEdges" style="width:100px;height:100px;">
+          <use href="#engineer-tool-sprite"/>
+        </svg>
+      </div>
+      <div class="intro-box">
+        <div id="intro-text"></div>
+        <div class="intro-next" id="intro-next" onclick="startStory()">▼ 팹으로 출근하기</div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div id="map" class="screen-view">
+      <div class="map-header">
+        <div class="map-title">FAB MAP</div>
+        <div class="map-status" id="map-status">0 / 5</div>
+      </div>
+      <div class="map-area">
+        <svg class="map-svg" viewBox="0 0 160 100" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet">
+          <!-- 외곽 벽 + 배경 -->
+          <rect x="0" y="0" width="160" height="100" fill="#0f380f"/>
+          <rect x="2" y="2" width="156" height="96" fill="#306230"/>
+          
+          <!-- 천장 LED 라인 -->
+          <rect x="2" y="2" width="156" height="2" fill="#0f380f"/>
+          <rect x="6" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="22" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="38" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="54" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="70" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="86" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="102" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="118" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="134" y="3" width="10" height="1" fill="#9bbc0f"/>
+          <rect x="150" y="3" width="6" height="1" fill="#9bbc0f"/>
+          
+          <!-- ============ 상단 설비 라인 (y=8~28) ============ -->
+          <!-- 설비 1: PHOTO/리소그래피 (수평 라인 패턴) -->
+          <g>
+            <rect x="4" y="8" width="28" height="22" fill="#0f380f"/>
+            <rect x="6" y="10" width="24" height="18" fill="#306230"/>
+            <rect x="8" y="12" width="20" height="2" fill="#0f380f"/>
+            <rect x="8" y="16" width="20" height="2" fill="#0f380f"/>
+            <rect x="8" y="20" width="20" height="2" fill="#0f380f"/>
+            <rect x="8" y="24" width="20" height="2" fill="#0f380f"/>
+          </g>
+          
+          <!-- 설비 2: CMP (원형 패드 표현) -->
+          <g>
+            <rect x="34" y="8" width="28" height="22" fill="#0f380f"/>
+            <rect x="36" y="10" width="24" height="18" fill="#306230"/>
+            <rect x="40" y="14" width="6" height="6" fill="#0f380f"/>
+            <rect x="50" y="14" width="6" height="6" fill="#0f380f"/>
+            <rect x="40" y="22" width="6" height="4" fill="#8bac0f"/>
+            <rect x="50" y="22" width="6" height="4" fill="#8bac0f"/>
+          </g>
+          
+          <!-- 설비 3: ETCH (큰 챔버) -->
+          <g>
+            <rect x="64" y="8" width="28" height="22" fill="#0f380f"/>
+            <rect x="66" y="10" width="24" height="18" fill="#306230"/>
+            <rect x="70" y="14" width="16" height="10" fill="#0f380f"/>
+            <rect x="74" y="18" width="8" height="2" fill="#8bac0f"/>
+          </g>
+          
+          <!-- 설비 4: 4중 모듈 -->
+          <g>
+            <rect x="94" y="8" width="28" height="22" fill="#0f380f"/>
+            <rect x="96" y="10" width="24" height="18" fill="#306230"/>
+            <rect x="98" y="12" width="8" height="6" fill="#0f380f"/>
+            <rect x="108" y="12" width="8" height="6" fill="#0f380f"/>
+            <rect x="98" y="20" width="8" height="6" fill="#0f380f"/>
+            <rect x="108" y="20" width="8" height="6" fill="#0f380f"/>
+          </g>
+          
+          <!-- 설비 5: 디퓨전/세로 라인 -->
+          <g>
+            <rect x="124" y="8" width="32" height="22" fill="#0f380f"/>
+            <rect x="126" y="10" width="28" height="18" fill="#306230"/>
+            <rect x="128" y="12" width="2" height="14" fill="#0f380f"/>
+            <rect x="132" y="12" width="2" height="14" fill="#0f380f"/>
+            <rect x="136" y="12" width="2" height="14" fill="#0f380f"/>
+            <rect x="140" y="12" width="2" height="14" fill="#0f380f"/>
+            <rect x="144" y="12" width="2" height="14" fill="#0f380f"/>
+            <rect x="148" y="12" width="2" height="14" fill="#0f380f"/>
+            <rect x="152" y="12" width="2" height="14" fill="#0f380f"/>
+          </g>
+          
+          <!-- ============ 메인 통로 (y=32~62) — 가로로 쭉 흐르는 MAIN LINE ============ -->
+          <rect x="2" y="32" width="156" height="30" fill="#8bac0f"/>
+          <!-- 가로 격자 -->
+          <rect x="2" y="38" width="156" height="1" fill="#306230" opacity="0.35"/>
+          <rect x="2" y="55" width="156" height="1" fill="#306230" opacity="0.35"/>
+          <!-- 세로 격자 (라인 표시) -->
+          <rect x="20" y="32" width="1" height="30" fill="#306230" opacity="0.2"/>
+          <rect x="40" y="32" width="1" height="30" fill="#306230" opacity="0.2"/>
+          <rect x="60" y="32" width="1" height="30" fill="#306230" opacity="0.2"/>
+          <rect x="80" y="32" width="1" height="30" fill="#306230" opacity="0.2"/>
+          <rect x="100" y="32" width="1" height="30" fill="#306230" opacity="0.2"/>
+          <rect x="120" y="32" width="1" height="30" fill="#306230" opacity="0.2"/>
+          <rect x="140" y="32" width="1" height="30" fill="#306230" opacity="0.2"/>
+          <!-- 바닥 안전선 (중앙선) — 메인 라인 시그니처 -->
+          <rect x="2" y="46" width="156" height="2" fill="#0f380f"/>
+          <rect x="2" y="47" width="156" height="1" fill="#9bbc0f"/>
+          <!-- MAIN LINE 라벨 -->
+          <text x="80" y="36" font-family="monospace" font-size="3.5" fill="#0f380f" text-anchor="middle" font-weight="bold">▸ ━━━ MAIN LINE ━━━ ▸</text>
+          
+          <!-- ============ 하단 설비 라인 (y=66~88) ============ -->
+          <!-- 설비 6: 디퓨전 -->
+          <g>
+            <rect x="4" y="66" width="28" height="22" fill="#0f380f"/>
+            <rect x="6" y="68" width="24" height="18" fill="#306230"/>
+            <rect x="8" y="70" width="20" height="2" fill="#8bac0f"/>
+            <rect x="8" y="74" width="20" height="2" fill="#8bac0f"/>
+            <rect x="8" y="78" width="20" height="2" fill="#8bac0f"/>
+            <rect x="8" y="82" width="20" height="2" fill="#8bac0f"/>
+          </g>
+          
+          <!-- 설비 7: 임플란트 (도트 패턴) -->
+          <g>
+            <rect x="34" y="66" width="28" height="22" fill="#0f380f"/>
+            <rect x="36" y="68" width="24" height="18" fill="#306230"/>
+            <rect x="40" y="72" width="4" height="4" fill="#8bac0f"/>
+            <rect x="48" y="72" width="4" height="4" fill="#8bac0f"/>
+            <rect x="54" y="72" width="4" height="4" fill="#8bac0f"/>
+            <rect x="40" y="80" width="4" height="4" fill="#8bac0f"/>
+            <rect x="48" y="80" width="4" height="4" fill="#8bac0f"/>
+            <rect x="54" y="80" width="4" height="4" fill="#8bac0f"/>
+          </g>
+          
+          <!-- 설비 8: 메탈 (큰 단일 챔버) -->
+          <g>
+            <rect x="64" y="66" width="28" height="22" fill="#0f380f"/>
+            <rect x="66" y="68" width="24" height="18" fill="#306230"/>
+            <rect x="70" y="72" width="16" height="10" fill="#0f380f"/>
+            <rect x="72" y="74" width="12" height="6" fill="#8bac0f"/>
+          </g>
+          
+          <!-- 설비 9: 측정/Metro (분할 모듈) -->
+          <g>
+            <rect x="94" y="66" width="28" height="22" fill="#0f380f"/>
+            <rect x="96" y="68" width="24" height="18" fill="#306230"/>
+            <rect x="98" y="70" width="10" height="7" fill="#0f380f"/>
+            <rect x="110" y="70" width="8" height="7" fill="#0f380f"/>
+            <rect x="98" y="79" width="10" height="6" fill="#0f380f"/>
+            <rect x="110" y="79" width="8" height="6" fill="#0f380f"/>
+          </g>
+          
+          <!-- 설비 10: RCS Room (락커형 부품 보관) -->
+          <g>
+            <rect x="124" y="66" width="32" height="22" fill="#0f380f"/>
+            <rect x="126" y="68" width="28" height="18" fill="#306230"/>
+            <rect x="128" y="70" width="8" height="6" fill="#0f380f"/>
+            <rect x="138" y="70" width="8" height="6" fill="#0f380f"/>
+            <rect x="148" y="70" width="6" height="6" fill="#0f380f"/>
+            <rect x="128" y="78" width="8" height="6" fill="#0f380f"/>
+            <rect x="138" y="78" width="8" height="6" fill="#0f380f"/>
+            <rect x="148" y="78" width="6" height="6" fill="#0f380f"/>
+          </g>
+          
+          <!-- 바닥 벽 -->
+          <rect x="0" y="98" width="160" height="2" fill="#0f380f"/>
+          
+          <!-- ============ 캐릭터 배치 (모두 MAIN LINE 위에서 활동) ============ -->
+          <!-- SAFER: 통로 좌측 끝 (순찰 시작점) -->
+          <g class="map-char" onclick="encounter(3)">
+            <rect x="3" y="40" width="18" height="18" fill="transparent"/>
+            <use href="#safer-sprite" x="3" y="40" width="18" height="18"/>
+          </g>
+          <!-- TOOL: 통로 좌측 (상단 설비 옆, 작업 대기) -->
+          <g class="map-char" onclick="encounter(1)">
+            <rect x="34" y="34" width="18" height="18" fill="transparent"/>
+            <use href="#tool-sprite" x="34" y="34" width="18" height="18"/>
+          </g>
+          <!-- RIDE: 메인 통로 정중앙 -->
+          <g class="map-char" onclick="encounter(0)">
+            <rect x="68" y="38" width="20" height="20" fill="transparent"/>
+            <use href="#wave-sprite" x="68" y="38" width="20" height="20"/>
+          </g>
+          <!-- PARTS: 통로 우측 (하단 RCS Room 방향) -->
+          <g class="map-char" onclick="encounter(2)">
+            <rect x="102" y="44" width="18" height="18" fill="transparent"/>
+            <use href="#parts-sprite" x="102" y="44" width="18" height="18"/>
+          </g>
+          <!-- AIR: 메인 통로 우측 (PM tool에 부착된 위치 추적기) -->
+          <g class="map-char" onclick="encounter(4)">
+            <rect x="128" y="40" width="22" height="22" fill="transparent"/>
+            <use href="#air-sprite" x="128" y="40" width="22" height="22"/>
+          </g>
+
+          <!-- ============ 플레이어 (신입 엔지니어) ============ -->
+          <g id="player" transform="translate(6, 42)">
+            <use href="#engineer-sprite" width="14" height="14"/>
+            <!-- 플레이어 표시 화살표 (위에 통통 튀는 ▼) -->
+            <text x="7" y="-1" font-family="monospace" font-size="4" fill="#0f380f" font-weight="bold" text-anchor="middle">▼
+              <animate attributeName="y" values="-1; -2; -1" keyTimes="0;0.5;1"
+                dur="0.6s" calcMode="discrete" repeatCount="indefinite"/>
+            </text>
+          </g>
+
+          <!-- ============ 인터랙션 힌트 마커 (가까운 동료 옆에 표시) ============ -->
+          <g id="hint-marker" visibility="hidden">
+            <!-- 작은 노란 배경 박스 (눈에 띄게) -->
+            <rect x="-3" y="-5" width="6" height="7" fill="#9bbc0f" stroke="#0f380f" stroke-width="0.5" rx="0.5"/>
+            <text x="0" y="1" font-family="monospace" font-size="6" fill="#0f380f" font-weight="bold" text-anchor="middle">!
+              <animate attributeName="y" values="1; -0.5; 1" keyTimes="0;0.5;1"
+                dur="0.5s" calcMode="discrete" repeatCount="indefinite"/>
+            </text>
+          </g>
+        </svg>
+      </div>
+      <div class="map-hint" id="map-hint"><span class="key-icon">↑↓←→</span> 이동 · <span class="key-icon">SPACE</span> 대화</div>
+      <div class="map-actions">
+        <button class="map-btn" onclick="goDex()">📔 DEX</button>
+        <button class="map-btn" onclick="goTitle()">⌂ HOME</button>
+      </div>
+
+      <!-- 챕터1 진입 버튼 (항상 표시) -->
+      <div class="map-story-btn" onclick="startStory()">
+        ▶ CHAPTER 1
+        <span class="small">RIDE 타고 설비로</span>
+      </div>
+
+      <!-- ============ 튜토리얼 오버레이 (첫 진입 시) ============ -->
+      <div class="tutorial-overlay" id="tutorial-overlay" onclick="hideTutorial()">
+        <div class="tutorial-box">
+          <div class="tutorial-title">◤ HOW TO PLAY</div>
+          <div class="tutorial-row">
+            <span class="key-icon">↑↓←→</span> 또는 <span class="key-icon">WASD</span><br>
+            팹을 자유롭게 돌아다녀요
+          </div>
+          <div class="tutorial-row" style="margin-top:6px;">
+            동료에게 다가가서<br>
+            <span class="key-icon action">SPACE</span>를 눌러 대화!
+          </div>
+          <div class="tutorial-close">▶ 아무 키나 눌러 시작</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENCOUNTER -->
+    <div id="encounter" class="screen-view">
+      <div class="enc-top">
+        <svg class="enc-art" id="enc-art" viewBox="0 0 24 24" shape-rendering="crispEdges"></svg>
+      </div>
+      <div class="enc-bottom">
+        <div>
+          <div class="enc-title" id="enc-title">야생의 ___가 나타났다!</div>
+          <div class="enc-class" id="enc-class"></div>
+          <div class="enc-quote" id="enc-quote"></div>
+        </div>
+        <div class="enc-actions">
+          <div class="enc-info" onclick="encDetail()">▶ 자세히</div>
+          <div class="enc-register" onclick="encClose()">CONTINUE ▶</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEX -->
+    <div id="dex" class="screen-view">
+      <div class="dex-header">
+        <div class="dex-title">CONNECT DEX</div>
+        <div class="dex-count" id="dex-count">0 / 5</div>
+      </div>
+      <div class="dex-grid" id="dex-grid">
+        <!-- 동적 생성 -->
+      </div>
+      <div class="dex-footer" id="dex-footer">▶ MAP에서 동료를 찾아주세요!</div>
+      <div class="dex-story-btn" id="dex-story-btn" onclick="startStory()">▶ CHAPTER 1</div>
+    </div>
+
+    <!-- DETAIL -->
+    <div id="detail" class="screen-view">
+      <div class="detail-header">
+        <div class="detail-back" onclick="goDex()">◀ 도감</div>
+        <div class="detail-num" id="d-num">No.001</div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-art">
+          <svg id="d-art" viewBox="0 0 24 24" shape-rendering="crispEdges"></svg>
+        </div>
+        <div class="detail-info">
+          <div class="detail-name" id="d-name">RIDE</div>
+          <div class="detail-class" id="d-class"></div>
+          <div class="detail-desc" id="d-desc"></div>
+        </div>
+      </div>
+      <div class="detail-quote" id="d-quote"></div>
+    </div>
+
+    <!-- STORY MODE -->
+    <div id="story" class="screen-view" style="flex-direction:column;padding:8px;">
+      <div class="story-stage" id="story-stage">
+        <div class="story-chapter-tag" id="story-chapter-tag">CHAPTER 1</div>
+        <div class="safer-bg" id="safer-bg" onclick="showSaferChartStory()" style="cursor:pointer;" title="SAFER 클릭">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="safer-bubble" id="safer-bubble">FAB 환경 정상! ✓</div>
+            <svg class="safer-mini" viewBox="0 0 24 24" shape-rendering="crispEdges">
+              <use href="#safer-sprite"/>
+            </svg>
+          </div>
+        </div>
+        <div id="story-stage-content"></div>
+      </div>
+      <div id="story-dialog-area"></div>
+
+      <!-- SAFER 차트 모달 (스토리 화면용) -->
+      <div class="safer-modal-overlay" id="safer-modal-story" onclick="hideSaferChartStory()">
+        <div class="safer-modal" onclick="event.stopPropagation()">
+          <div class="safer-modal-title">🟦 SAFER — FAB 환경 현황</div>
+          <div class="safer-charts">
+            <div class="safer-chart-box">
+              <div class="safer-chart-label">PARTICLE</div>
+              <div class="safer-chart-value">0.3 /ft³</div>
+              <div class="safer-chart-bar-wrap">
+                <div class="safer-chart-bar" id="s-chart-particle" style="width:0%"></div>
+              </div>
+              <div class="safer-chart-status ok">✓ 정상</div>
+            </div>
+            <div class="safer-chart-box">
+              <div class="safer-chart-label">PRESSURE</div>
+              <div class="safer-chart-value">+2.4 Pa</div>
+              <div class="safer-chart-bar-wrap">
+                <div class="safer-chart-bar" id="s-chart-pressure" style="width:0%"></div>
+              </div>
+              <div class="safer-chart-status ok">✓ 정상</div>
+            </div>
+            <div class="safer-chart-box">
+              <div class="safer-chart-label">OCAP</div>
+              <div class="safer-chart-value">98.7 %</div>
+              <div class="safer-chart-bar-wrap">
+                <div class="safer-chart-bar" id="s-chart-ocap" style="width:0%"></div>
+              </div>
+              <div class="safer-chart-status ok">✓ 정상</div>
+            </div>
+            <div class="safer-chart-box">
+              <div class="safer-chart-label">TEMPERATURE</div>
+              <div class="safer-chart-value">22.1 °C</div>
+              <div class="safer-chart-bar-wrap">
+                <div class="safer-chart-bar" id="s-chart-temp" style="width:0%"></div>
+              </div>
+              <div class="safer-chart-status ok">✓ 정상</div>
+            </div>
+          </div>
+          <button class="safer-modal-close" onclick="hideSaferChartStory()">▶ 닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENDING -->
+    <div id="ending" class="screen-view">
+      <div class="ending-title">✦ CONGRATULATIONS ✦</div>
+      <div class="ending-msg">
+        모든 동료를 만났습니다!<br><br>
+        이제 진짜 미션이 시작됩니다 —<br>
+        신입 엔지니어의 첫 출근날!
+      </div>
+      <button class="ending-btn ending-btn-primary" onclick="startStory()">▶ 첫 출근 스토리</button>
+      <button class="ending-btn" onclick="goDex()">▶ 도감 보기</button>
+      <button class="ending-btn" onclick="goTitle()">▶ 처음으로</button>
+    </div>
+
+    <!-- ============ STORY MODE ============ -->
+    <!-- (정의는 위쪽 #story 사용) -->
+
+  </div>
+</div>
+
+<!-- ============ SPRITES ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- RIDE (스프라이트 id는 wave-sprite 유지) -->
+    <g id="wave-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+        dur="2s" calcMode="discrete" repeatCount="indefinite"/>
+      <rect x="3" y="4" width="5" height="9" fill="#306230"/>
+      <rect x="4" y="5" width="3" height="3" fill="#8bac0f"/>
+      <rect x="16" y="4" width="5" height="9" fill="#306230"/>
+      <rect x="17" y="5" width="3" height="3" fill="#8bac0f"/>
+      <rect x="11" y="6" width="2" height="8" fill="#0f380f"/>
+      <rect x="11" y="7" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#9bbc0f;#0f380f;#8bac0f"
+          keyTimes="0;0.25;0.5;1" dur="1.2s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="11" y="9" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#0f380f;#9bbc0f;#8bac0f"
+          keyTimes="0;0.3;0.7;1" dur="1.6s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="3" y="13" width="18" height="3" fill="#306230"/>
+      <rect x="3" y="16" width="18" height="1" fill="#0f380f"/>
+      <rect x="5" y="17" width="3" height="2" fill="#0f380f"/>
+      <rect x="16" y="17" width="3" height="2" fill="#0f380f"/>
+    </g>
+
+    <g id="tool-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+        dur="1.8s" calcMode="discrete" repeatCount="indefinite"/>
+      <rect x="3" y="3" width="9" height="13" fill="#306230"/>
+      <rect x="8" y="4" width="2" height="2" fill="#0f380f">
+        <animate attributeName="fill" values="#0f380f;#8bac0f;#0f380f"
+          keyTimes="0;0.5;1" dur="1s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="4" y="7" width="7" height="1" fill="#8bac0f"/>
+      <rect x="4" y="10" width="7" height="1" fill="#8bac0f"/>
+      <rect x="12" y="13" width="9" height="3" fill="#306230"/>
+      <rect x="3" y="16" width="9" height="1" fill="#0f380f"/>
+      <rect x="12" y="16" width="9" height="1" fill="#0f380f"/>
+      <rect x="5" y="17" width="2" height="2" fill="#0f380f"/>
+      <rect x="9" y="17" width="2" height="2" fill="#0f380f"/>
+      <rect x="14" y="17" width="2" height="2" fill="#0f380f"/>
+      <rect x="18" y="17" width="2" height="2" fill="#0f380f"/>
+    </g>
+
+    <!-- ============ TOOL + 국소배기 (우측 거치 + S자 호스) ============ -->
+    <g id="tool-with-exhaust-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+        dur="1.8s" calcMode="discrete" repeatCount="indefinite"/>
+
+      <!-- ===== TOOL 본체 (원본 그대로) ===== -->
+      <rect x="3" y="3" width="9" height="13" fill="#306230"/>
+      <rect x="8" y="4" width="2" height="2" fill="#0f380f">
+        <animate attributeName="fill" values="#0f380f;#8bac0f;#0f380f"
+          keyTimes="0;0.5;1" dur="1s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="4" y="7" width="7" height="1" fill="#8bac0f"/>
+      <rect x="4" y="10" width="7" height="1" fill="#8bac0f"/>
+      <rect x="12" y="13" width="9" height="3" fill="#306230"/>
+      <rect x="3" y="16" width="9" height="1" fill="#0f380f"/>
+      <rect x="12" y="16" width="9" height="1" fill="#0f380f"/>
+      <rect x="5" y="17" width="2" height="2" fill="#0f380f"/>
+      <rect x="9" y="17" width="2" height="2" fill="#0f380f"/>
+      <rect x="14" y="17" width="2" height="2" fill="#0f380f"/>
+      <rect x="18" y="17" width="2" height="2" fill="#0f380f"/>
+
+      <!-- ===== 국소배기 본체 (TOOL 우측에 거치) ===== -->
+      <rect x="13" y="3" width="7" height="9" fill="#0f380f"/>
+      <!-- 상단 흰색 패널 -->
+      <rect x="14" y="4" width="5" height="3" fill="#9bbc0f"/>
+      <!-- 하단 어두운 패널 -->
+      <rect x="14" y="7" width="5" height="4" fill="#306230"/>
+      <!-- AIR 태그 (펄스) -->
+      <rect x="17" y="5" width="2" height="1" fill="#0f380f"/>
+      <rect x="17" y="5" width="1" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#9bbc0f;#8bac0f"
+          keyTimes="0;0.5;1" dur="0.7s" repeatCount="indefinite"/>
+      </rect>
+
+      <!-- ===== 호스 S자 구불구불 (국소배기 → 깔때기) ===== -->
+      <!-- 호스 연결부 (본체 상단) -->
+      <rect x="13" y="2" width="1" height="1" fill="#9bbc0f"/>
+      <!-- S자 1단: 위로 -->
+      <rect x="13" y="1" width="1" height="1" fill="#9bbc0f"/>
+      <!-- S자 2단: 왼쪽으로 꺾임 -->
+      <rect x="11" y="1" width="2" height="1" fill="#9bbc0f"/>
+      <!-- S자 3단: 더 왼쪽 -->
+      <rect x="10" y="1" width="1" height="1" fill="#9bbc0f"/>
+      <!-- S자 4단: 다시 위로 -->
+      <rect x="10" y="0" width="1" height="1" fill="#9bbc0f"/>
+      <!-- S자 5단: 왼쪽으로 -->
+      <rect x="8" y="0" width="2" height="1" fill="#9bbc0f"/>
+      <!-- S자 6단: 아래로 꺾여 깔때기 연결 -->
+      <rect x="7" y="1" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="7" y="2" width="1" height="1" fill="#9bbc0f"/>
+
+      <!-- ===== 깔때기 후드 (좌측 상단) ===== -->
+      <rect x="5" y="2" width="3" height="1" fill="#9bbc0f"/>
+      <rect x="4" y="3" width="4" height="1" fill="#9bbc0f"/>
+      <rect x="4" y="4" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="6" y="4" width="1" height="1" fill="#9bbc0f"/>
+    </g>
+
+    <g id="parts-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+        dur="2.2s" calcMode="discrete" repeatCount="indefinite"/>
+      <rect x="3" y="3" width="8" height="13" fill="#306230"/>
+      <rect x="4" y="5" width="6" height="2" fill="#0f380f"/>
+      <rect x="4" y="8" width="6" height="2" fill="#0f380f"/>
+      <rect x="4" y="11" width="6" height="2" fill="#0f380f"/>
+      <rect x="6" y="6" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#9bbc0f;#8bac0f;#8bac0f"
+          keyTimes="0;0.15;0.3;1" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="6" y="9" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#8bac0f;#9bbc0f;#8bac0f;#8bac0f"
+          keyTimes="0;0.3;0.45;0.6;1" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="6" y="12" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#8bac0f;#9bbc0f;#8bac0f"
+          keyTimes="0;0.6;0.75;1" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="13" y="3" width="8" height="13" fill="#306230"/>
+      <rect x="14" y="4" width="6" height="11" fill="#0f380f"/>
+      <rect x="15" y="5" width="4" height="9" fill="#306230"/>
+      <rect x="16" y="5" width="1" height="9" fill="#0f380f"/>
+      <rect x="17" y="5" width="1" height="9" fill="#0f380f"/>
+      <rect x="16" y="9" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="17" y="9" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="3" y="16" width="18" height="1" fill="#0f380f"/>
+      <rect x="5" y="17" width="3" height="2" fill="#0f380f"/>
+      <rect x="16" y="17" width="3" height="2" fill="#0f380f"/>
+    </g>
+
+    <!-- ============ PARTS + 렌치 (우측 적재함 위에 올라탄) ============ -->
+    <g id="parts-with-wrench-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+        dur="2.2s" calcMode="discrete" repeatCount="indefinite"/>
+
+      <!-- PARTS 본체 (원본) -->
+      <rect x="3" y="3" width="8" height="13" fill="#306230"/>
+      <rect x="4" y="5" width="6" height="2" fill="#0f380f"/>
+      <rect x="4" y="8" width="6" height="2" fill="#0f380f"/>
+      <rect x="4" y="11" width="6" height="2" fill="#0f380f"/>
+      <rect x="6" y="6" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#9bbc0f;#8bac0f;#8bac0f"
+          keyTimes="0;0.15;0.3;1" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="6" y="9" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#8bac0f;#9bbc0f;#8bac0f;#8bac0f"
+          keyTimes="0;0.3;0.45;0.6;1" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="6" y="12" width="2" height="1" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#8bac0f;#9bbc0f;#8bac0f"
+          keyTimes="0;0.6;0.75;1" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <!-- 우측 적재함 -->
+      <rect x="13" y="3" width="8" height="13" fill="#306230"/>
+      <rect x="14" y="4" width="6" height="11" fill="#0f380f"/>
+      <rect x="15" y="5" width="4" height="9" fill="#306230"/>
+      <rect x="16" y="5" width="1" height="9" fill="#0f380f"/>
+      <rect x="17" y="5" width="1" height="9" fill="#0f380f"/>
+      <rect x="16" y="9" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="17" y="9" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="3" y="16" width="18" height="1" fill="#0f380f"/>
+      <rect x="5" y="17" width="3" height="2" fill="#0f380f"/>
+      <rect x="16" y="17" width="3" height="2" fill="#0f380f"/>
+
+      <!-- ===== 렌치 (우측 적재함 위에 비스듬히) ===== -->
+      <!-- 렌치 손잡이 (대각선, 좌하→우상) -->
+      <rect x="14" y="0" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="15" y="1" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="16" y="2" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="17" y="3" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="18" y="3" width="1" height="1" fill="#9bbc0f"/>
+      <!-- 렌치 머리 (상단 U자) -->
+      <rect x="18" y="1" width="2" height="1" fill="#9bbc0f"/>
+      <rect x="19" y="0" width="1" height="2" fill="#9bbc0f"/>
+      <rect x="20" y="0" width="1" height="2" fill="#9bbc0f"/>
+      <rect x="20" y="2" width="1" height="1" fill="#9bbc0f"/>
+      <!-- 렌치 그림자 (어두운 테두리) -->
+      <rect x="13" y="1" width="1" height="1" fill="#306230"/>
+      <rect x="21" y="0" width="1" height="3" fill="#306230"/>
+    </g>
+
+    <g id="safer-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+        dur="1.6s" calcMode="discrete" repeatCount="indefinite"/>
+      <g>
+        <animateTransform attributeName="transform" type="translate"
+          values="-1 0; 0 0; 1 0; 0 0; -1 0" keyTimes="0;0.25;0.5;0.75;1"
+          dur="3s" calcMode="discrete" repeatCount="indefinite"/>
+        <rect x="9" y="3" width="6" height="3" fill="#0f380f"/>
+        <rect x="10" y="4" width="4" height="1" fill="#8bac0f">
+          <animate attributeName="fill" values="#8bac0f;#9bbc0f;#8bac0f"
+            keyTimes="0;0.5;1" dur="0.8s" repeatCount="indefinite"/>
+        </rect>
+        <rect x="11" y="4" width="2" height="1" fill="#9bbc0f"/>
+      </g>
+      <rect x="6" y="6" width="12" height="11" fill="#306230"/>
+      <rect x="8" y="8" width="8" height="4" fill="#8bac0f">
+        <animate attributeName="fill" values="#8bac0f;#9bbc0f;#8bac0f"
+          keyTimes="0;0.5;1" dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="9" y="9" width="2" height="1" fill="#0f380f"/>
+      <rect x="12" y="9" width="3" height="1" fill="#0f380f"/>
+      <rect x="9" y="11" width="5" height="1" fill="#0f380f"/>
+      <rect x="8" y="14" width="8" height="1" fill="#0f380f"/>
+      <rect x="8" y="16" width="8" height="1" fill="#0f380f"/>
+      <rect x="6" y="17" width="12" height="2" fill="#0f380f"/>
+      <rect x="3" y="18" width="1" height="1" fill="#306230">
+        <animate attributeName="opacity" values="1;0;1" keyTimes="0;0.5;1"
+          dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="20" y="18" width="1" height="1" fill="#306230">
+        <animate attributeName="opacity" values="0;1;0" keyTimes="0;0.5;1"
+          dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="4" y="20" width="1" height="1" fill="#8bac0f">
+        <animate attributeName="opacity" values="1;0;1" keyTimes="0;0.4;1"
+          dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="19" y="20" width="1" height="1" fill="#8bac0f">
+        <animate attributeName="opacity" values="0;1;0" keyTimes="0;0.4;1"
+          dur="1.8s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+
+    <g id="air-sprite">
+      <!-- 살짝 호흡 -->
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+        dur="2s" calcMode="discrete" repeatCount="indefinite"/>
+
+      <!-- ===== AIR 신호 펄스 (본체 위에서 사방으로) ===== -->
+      <!-- 가까운 펄스 (먼저 빛남) -->
+      <rect x="13" y="6" width="1" height="1" fill="#8bac0f">
+        <animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.3;0.6;1"
+          dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="16" y="7" width="1" height="1" fill="#8bac0f">
+        <animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.3;0.6;1"
+          dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="19" y="8" width="1" height="1" fill="#8bac0f">
+        <animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.3;0.6;1"
+          dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+      <!-- 먼 펄스 (나중에 빛남) -->
+      <rect x="11" y="3" width="1" height="1" fill="#306230">
+        <animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.5;0.8;1"
+          dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="15" y="2" width="1" height="1" fill="#306230">
+        <animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.5;0.8;1"
+          dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="19" y="3" width="1" height="1" fill="#306230">
+        <animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.5;0.8;1"
+          dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="22" y="5" width="1" height="1" fill="#306230">
+        <animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.5;0.8;1"
+          dur="1.4s" repeatCount="indefinite"/>
+      </rect>
+
+      <!-- ===== 호스 + 깔때기 (좌측 상단) ===== -->
+      <!-- 깔때기 후드 (가장 밝은) -->
+      <rect x="1" y="3" width="3" height="1" fill="#9bbc0f"/>
+      <rect x="0" y="4" width="5" height="1" fill="#9bbc0f"/>
+      <rect x="0" y="5" width="1" height="1" fill="#9bbc0f"/>
+      <rect x="4" y="5" width="1" height="1" fill="#9bbc0f"/>
+      <!-- 호스 (구불구불하게 본체로 내려옴) -->
+      <rect x="3" y="6" width="2" height="1" fill="#9bbc0f"/>
+      <rect x="4" y="7" width="2" height="1" fill="#9bbc0f"/>
+      <rect x="5" y="8" width="2" height="1" fill="#9bbc0f"/>
+      <rect x="6" y="9" width="2" height="1" fill="#9bbc0f"/>
+      <!-- 호스 외곽선 (어둡게 강조) -->
+      <rect x="2" y="3" width="1" height="1" fill="#0f380f"/>
+      <rect x="4" y="3" width="1" height="1" fill="#0f380f"/>
+
+      <!-- ===== 국소배기 본체 ===== -->
+      <!-- 외곽 (가장 어두운) -->
+      <rect x="4" y="10" width="16" height="8" fill="#0f380f"/>
+      <!-- 상단 손잡이 라인 (은색 바) -->
+      <rect x="5" y="11" width="14" height="1" fill="#8bac0f"/>
+      <!-- 본체 위쪽 흰색 면 -->
+      <rect x="5" y="12" width="14" height="2" fill="#9bbc0f"/>
+      <!-- 본체 아래쪽 어두운 면 (네이비 느낌) -->
+      <rect x="5" y="14" width="14" height="3" fill="#306230"/>
+      <!-- 본체 하단 라인 -->
+      <rect x="5" y="17" width="14" height="1" fill="#8bac0f"/>
+
+      <!-- ===== AIR 태그 (본체 위쪽 흰색 면에 부착) ===== -->
+      <!-- 태그 외곽 (어두운) -->
+      <rect x="14" y="12" width="4" height="2" fill="#0f380f"/>
+      <!-- 태그 발광 코어 (펄스) -->
+      <rect x="15" y="12" width="2" height="1" fill="#9bbc0f">
+        <animate attributeName="fill" values="#9bbc0f;#8bac0f;#9bbc0f"
+          keyTimes="0;0.5;1" dur="0.7s" repeatCount="indefinite"/>
+      </rect>
+      <!-- 태그 라벨 (A 흔적) -->
+      <rect x="15" y="13" width="2" height="1" fill="#306230"/>
+
+      <!-- 본체 라벨 영역 (CAFU 같은 표시) -->
+      <rect x="6" y="15" width="6" height="1" fill="#0f380f"/>
+
+      <!-- ===== 바퀴 (4개) ===== -->
+      <rect x="5" y="18" width="2" height="2" fill="#0f380f"/>
+      <rect x="9" y="18" width="2" height="2" fill="#0f380f"/>
+      <rect x="13" y="18" width="2" height="2" fill="#0f380f"/>
+      <rect x="17" y="18" width="2" height="2" fill="#0f380f"/>
+    </g>
+
+    <g id="engineer-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.5; 0 0" keyTimes="0; 0.5; 1"
+        dur="2.4s" calcMode="discrete" repeatCount="indefinite"/>
+      <rect x="8" y="3" width="8" height="6" fill="#306230"/>
+      <rect x="9" y="5" width="6" height="3" fill="#9bbc0f"/>
+      <rect x="9" y="5" width="2" height="2" fill="#0f380f"/>
+      <rect x="13" y="5" width="2" height="2" fill="#0f380f"/>
+      <rect x="11" y="6" width="2" height="1" fill="#0f380f"/>
+      <rect x="10" y="7" width="4" height="1" fill="#8bac0f"/>
+      <rect x="9" y="9" width="6" height="1" fill="#0f380f"/>
+      <rect x="6" y="10" width="12" height="7" fill="#306230"/>
+      <rect x="11" y="10" width="2" height="6" fill="#0f380f"/>
+      <rect x="6" y="10" width="12" height="1" fill="#0f380f"/>
+      <rect x="4" y="11" width="2" height="5" fill="#306230"/>
+      <rect x="18" y="11" width="2" height="5" fill="#306230"/>
+      <rect x="4" y="16" width="2" height="2" fill="#8bac0f"/>
+      <rect x="18" y="16" width="2" height="2" fill="#8bac0f"/>
+      <rect x="7" y="17" width="4" height="3" fill="#306230"/>
+      <rect x="13" y="17" width="4" height="3" fill="#306230"/>
+      <rect x="7" y="20" width="4" height="1" fill="#0f380f"/>
+      <rect x="13" y="20" width="4" height="1" fill="#0f380f"/>
+    </g>
+
+    <g id="engineer-tool-sprite">
+      <animateTransform attributeName="transform" type="translate"
+        values="0 0; 0 -0.5; 0 0" keyTimes="0; 0.5; 1"
+        dur="2.6s" calcMode="discrete" repeatCount="indefinite"/>
+      <rect x="8" y="3" width="8" height="6" fill="#306230"/>
+      <rect x="9" y="5" width="6" height="3" fill="#9bbc0f"/>
+      <rect x="9" y="5" width="2" height="2" fill="#0f380f"/>
+      <rect x="13" y="5" width="2" height="2" fill="#0f380f"/>
+      <rect x="11" y="6" width="2" height="1" fill="#0f380f"/>
+      <rect x="10" y="7" width="4" height="1" fill="#8bac0f"/>
+      <rect x="9" y="9" width="6" height="1" fill="#0f380f"/>
+      <rect x="6" y="10" width="12" height="7" fill="#306230"/>
+      <rect x="11" y="10" width="2" height="6" fill="#0f380f"/>
+      <rect x="6" y="10" width="12" height="1" fill="#0f380f"/>
+      <rect x="4" y="11" width="2" height="5" fill="#306230"/>
+      <rect x="4" y="16" width="2" height="2" fill="#8bac0f"/>
+      <rect x="18" y="11" width="2" height="3" fill="#306230"/>
+      <rect x="18" y="14" width="2" height="2" fill="#8bac0f"/>
+      <g>
+        <animateTransform attributeName="transform" type="translate"
+          values="0 0; 0 -1; 0 0" keyTimes="0;0.5;1"
+          dur="1.3s" calcMode="discrete" repeatCount="indefinite"/>
+        <rect x="20" y="12" width="1" height="4" fill="#0f380f"/>
+        <rect x="19" y="11" width="3" height="2" fill="#0f380f"/>
+        <rect x="20" y="11" width="1" height="1" fill="#9bbc0f"/>
+      </g>
+      <rect x="7" y="17" width="4" height="3" fill="#306230"/>
+      <rect x="13" y="17" width="4" height="3" fill="#306230"/>
+      <rect x="7" y="20" width="4" height="1" fill="#0f380f"/>
+      <rect x="13" y="20" width="4" height="1" fill="#0f380f"/>
+    </g>
+
+    <!-- ============ 사람 탄 RIDE — 옆모습 확정 버전 ============ -->
+    <g id="wave-with-engineers-sprite">
+      <use href="#wave-sprite"/>
+      <g>
+        <animateTransform attributeName="transform" type="translate"
+          values="0 0; 0 -0.4; 0 0" keyTimes="0; 0.5; 1"
+          dur="2s" calcMode="discrete" repeatCount="indefinite"/>
+
+        <!-- 사람 1 (좌측 공간, 우측 향함) x=8~10, y=5~12 -->
+        <rect x="9" y="5" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="8" y="6" width="1" height="1" fill="#0f380f"/>
+        <rect x="9" y="6" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="8" y="7" width="1" height="1" fill="#0f380f"/>
+        <rect x="9" y="7" width="1" height="1" fill="#8bac0f"/>
+        <rect x="10" y="7" width="1" height="1" fill="#0f380f"/>
+        <rect x="8" y="8" width="1" height="1" fill="#0f380f"/>
+        <rect x="9" y="8" width="2" height="1" fill="#306230"/>
+        <rect x="8" y="9" width="1" height="1" fill="#0f380f"/>
+        <rect x="9" y="9" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="8" y="10" width="1" height="1" fill="#0f380f"/>
+        <rect x="9" y="10" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="8" y="11" width="1" height="1" fill="#0f380f"/>
+        <rect x="9" y="11" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="8" y="12" width="3" height="1" fill="#306230"/>
+
+        <!-- 사람 2 (우측 공간, 우측 향함) x=13~15, y=5~12 -->
+        <rect x="14" y="5" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="13" y="6" width="1" height="1" fill="#0f380f"/>
+        <rect x="14" y="6" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="13" y="7" width="1" height="1" fill="#0f380f"/>
+        <rect x="14" y="7" width="1" height="1" fill="#8bac0f"/>
+        <rect x="15" y="7" width="1" height="1" fill="#0f380f"/>
+        <rect x="13" y="8" width="1" height="1" fill="#0f380f"/>
+        <rect x="14" y="8" width="2" height="1" fill="#306230"/>
+        <rect x="13" y="9" width="1" height="1" fill="#0f380f"/>
+        <rect x="14" y="9" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="13" y="10" width="1" height="1" fill="#0f380f"/>
+        <rect x="14" y="10" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="13" y="11" width="1" height="1" fill="#0f380f"/>
+        <rect x="14" y="11" width="2" height="1" fill="#9bbc0f"/>
+        <rect x="13" y="12" width="3" height="1" fill="#306230"/>
+      </g>
+    </g>
+  </defs>
+</svg>
+
+<script>
+// ========================================
+//  SOUND
+// ========================================
+let audioCtx = null;
+let muted = false;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function tone({freq=440, dur=0.08, type='square', volume=0.06, attack=0.005}) {
+  if (muted) return;
+  try {
+    const ctx = ensureAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    const now = ctx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume, now + attack);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur);
+  } catch (e) {}
+}
+
+function sndStart() {
+  tone({freq: 523, dur: 0.1, type: 'square', volume: 0.07});
+  setTimeout(() => tone({freq: 659, dur: 0.1, type: 'square', volume: 0.07}), 110);
+  setTimeout(() => tone({freq: 784, dur: 0.18, type: 'square', volume: 0.07}), 220);
+}
+function sndPage() {
+  tone({freq: 660, dur: 0.06, type: 'square', volume: 0.05});
+  setTimeout(() => tone({freq: 880, dur: 0.08, type: 'square', volume: 0.05}), 50);
+}
+function sndOpen() {
+  tone({freq: 880, dur: 0.05, type: 'triangle', volume: 0.06});
+  setTimeout(() => tone({freq: 1320, dur: 0.08, type: 'triangle', volume: 0.05}), 40);
+}
+function sndBack() {
+  tone({freq: 440, dur: 0.06, type: 'square', volume: 0.05});
+  setTimeout(() => tone({freq: 330, dur: 0.08, type: 'square', volume: 0.05}), 50);
+}
+function sndHover() {
+  tone({freq: 1200, dur: 0.02, type: 'sine', volume: 0.03});
+}
+function sndNext() {
+  tone({freq: 988, dur: 0.05, type: 'triangle', volume: 0.05});
+}
+
+// 인카운터 사운드: 야생 등장 (드라마틱)
+function sndEncounter() {
+  tone({freq: 220, dur: 0.08, type: 'square', volume: 0.08});
+  setTimeout(() => tone({freq: 330, dur: 0.08, type: 'square', volume: 0.08}), 80);
+  setTimeout(() => tone({freq: 440, dur: 0.08, type: 'square', volume: 0.08}), 160);
+  setTimeout(() => tone({freq: 660, dur: 0.15, type: 'square', volume: 0.08}), 240);
+}
+
+// 도감 등록 사운드: 성공 멜로디
+function sndRegister() {
+  tone({freq: 784, dur: 0.08, type: 'triangle', volume: 0.07});
+  setTimeout(() => tone({freq: 988, dur: 0.08, type: 'triangle', volume: 0.07}), 80);
+  setTimeout(() => tone({freq: 1318, dur: 0.18, type: 'triangle', volume: 0.07}), 160);
+}
+
+// 엔딩 멜로디
+function sndEnding() {
+  const notes = [523, 659, 784, 1047, 988, 1318];
+  notes.forEach((f, i) => {
+    setTimeout(() => tone({freq: f, dur: 0.15, type: 'square', volume: 0.07}), i * 130);
+  });
+}
+
+function toggleSound() {
+  muted = !muted;
+  document.getElementById('sound-btn').textContent = muted ? '✕' : '♪';
+  if (!muted) sndHover();
+}
+
+// ========================================
+//  ROUTER
+// ========================================
+function show(id) {
+  document.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'intro') startIntro();
+  if (id === 'dex') renderDex();
+  if (id === 'map') updateMapStatus();
+}
+
+function goIntro() {
+  sndStart();
+  setTimeout(() => show('intro'), 420);
+}
+function goMap() {
+  sndPage();
+  show('map');
+  // 처음 맵 진입할 때 튜토리얼 표시
+  if (!tutorialShown) {
+    setTimeout(() => showTutorial(), 200);
+  }
+}
+function goDex() {
+  sndPage();
+  show('dex');
+}
+function goTitle() {
+  sndBack();
+  if (typeof stopSaferLoop === 'function') stopSaferLoop();
+  show('title');
+}
+
+// ========================================
+//  TUTORIAL OVERLAY
+// ========================================
+let tutorialShown = false;
+let tutorialActive = false;
+
+function showTutorial() {
+  const overlay = document.getElementById('tutorial-overlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+  tutorialActive = true;
+  sndOpen();
+}
+
+function hideTutorial() {
+  const overlay = document.getElementById('tutorial-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+  tutorialActive = false;
+  tutorialShown = true;
+  sndPage();
+}
+
+// ========================================
+//  INTRO
+// ========================================
+const INTRO_TEXT = `거대한 FAB이 있다.
+
+너무 커서, 방진복을 입은 엔지니어들은 한 바퀴 도는 것도 힘들다...
+
+하지만 설비는 누군가 지켜봐야 한다.
+
+그래서, 그들이 태어났다.
+
+✦ CONNECT 패밀리 ✦`;
+
+let introTimer = null;
+function startIntro() {
+  const el = document.getElementById('intro-text');
+  const next = document.getElementById('intro-next');
+  el.textContent = '';
+  next.classList.remove('show');
+  if (introTimer) clearInterval(introTimer);
+  let i = 0;
+  introTimer = setInterval(() => {
+    if (i >= INTRO_TEXT.length) {
+      clearInterval(introTimer);
+      el.innerHTML += '<span class="intro-cursor">▎</span>';
+      next.classList.add('show');
+      sndNext();
+      return;
+    }
+    el.textContent += INTRO_TEXT[i];
+    i++;
+  }, 35);
+}
+
+// ========================================
+//  ROBOT DATA
+// ========================================
+const ROBOTS = [
+  {
+    num: 'No.001', name: 'RIDE', sprite: 'wave-sprite',
+    cls: '탑승형 / 운송 계열',
+    desc: '사용자를 태우고 목적지까지 데려다주는 든든한 친구. WAVE라고도 불린다. 2인승, 라인폰으로 호출하거나 현장에서 바로 탑승 가능. (단, 안전벨트는 필수)',
+    quote: '"어디로 모실까요?"'
+  },
+  {
+    num: 'No.002', name: 'DELIVERY-TOOL', sprite: 'tool-sprite',
+    cls: '운반형 / PM Tool 계열',
+    desc: 'L자 발판으로 PM tool 카트(국소배기, RF cal 등)를 떠서 운반한다. AIR의 신호를 받아 출동하는 묵묵한 짐꾼.',
+    quote: '"무거운 건 제게 맡기세요."'
+  },
+  {
+    num: 'No.003', name: 'DELIVERY-PARTS', sprite: 'parts-sprite',
+    cls: '운반형 / 부품 계열',
+    desc: '부품과 공구함을 모신다. RCS Room을 코앞까지 옮겨준다고 볼 수 있다. 1열은 스마트락커, 2열은 문 달린 적재칸으로 빽빽하게 채워져 있다.',
+    quote: '"부품 배송 왔습니다!"'
+  },
+  {
+    num: 'No.004', name: 'SAFER', sprite: 'safer-sprite',
+    cls: '모니터링 / 청소 계열',
+    desc: 'SEMI-X라고도 부른다. 팹을 순찰하며 환경을 모니터링하고, 이상이 생기면 운영자에게 알린다. 덤으로 청소까지!',
+    quote: '"이상 없음. 깨끗합니다."'
+  },
+  {
+    num: 'No.005', name: 'AIR', sprite: 'air-sprite',
+    cls: '인프라 / 신호 송신',
+    desc: 'PM tool 카트에 붙어 위치를 추적하는 작은 신호 요정. AIR가 "여기 있어요!" 알리면, DELIVERY-TOOL이 출동한다.',
+    quote: '"삐빅— 신호 발신 중!"'
+  }
+];
+
+// ========================================
+//  GAME STATE
+// ========================================
+const metChars = new Set();
+let currentEncounter = null;
+
+function updateMapStatus() {
+  document.getElementById('map-status').textContent = `${metChars.size} / 5`;
+  const hintEl = document.getElementById('map-hint');
+  if (metChars.size === 5) {
+    hintEl.innerHTML = '✦ 모든 동료를 만났어요! 다시 만나보세요!';
+  } else {
+    hintEl.innerHTML = '<span class="key-icon">↑↓←→</span> 이동 · <span class="key-icon">SPACE</span> 대화';
+  }
+  // 키 상태 리셋 (인카운터 끝나고 돌아올 때)
+  if (window.keys) {
+    keys.up = keys.down = keys.left = keys.right = false;
+  }
+}
+
+// ========================================
+//  ENCOUNTER
+// ========================================
+function encounter(idx) {
+  const r = ROBOTS[idx];
+  currentEncounter = idx;
+  const isFirst = !metChars.has(idx);
+  
+  // SVG art 갱신
+  document.getElementById('enc-art').innerHTML = `<use href="#${r.sprite}"/>`;
+  
+  // AIR는 호스 색(#9bbc0f)이 기본 배경(lightest)과 같아서 → 배경을 어둡게 전환
+  const encTop = document.querySelector('.enc-top');
+  if (idx === 4) {
+    encTop.style.background = 'var(--gb-dark)';
+  } else {
+    encTop.style.background = 'var(--gb-lightest)';
+  }
+  
+  // 텍스트 갱신
+  document.getElementById('enc-title').textContent = isFirst
+    ? `야생의 ${r.name}이(가) 나타났다!`
+    : `${r.name}을(를) 다시 만났다!`;
+  document.getElementById('enc-class').textContent = r.cls;
+  document.getElementById('enc-quote').textContent = r.quote;
+  
+  // 새로 만난 경우만 도감 등록
+  if (isFirst) {
+    metChars.add(idx);
+    sndEncounter();
+    setTimeout(sndRegister, 500);
+  } else {
+    sndOpen();
+  }
+  
+  show('encounter');
+}
+
+function encClose() {
+  sndPage();
+  // 모두 만났고 마지막 만남이면 엔딩으로
+  if (metChars.size === 5 && !window._endingShown) {
+    window._endingShown = true;
+    setTimeout(() => {
+      sndEnding();
+      show('ending');
+    }, 100);
+  } else {
+    show('map');
+  }
+}
+
+function encDetail() {
+  // 인카운터에서 자세히 보기 → 도감 디테일
+  showDetail(currentEncounter);
+}
+
+// ========================================
+//  DEX
+// ========================================
+function renderDex() {
+  const grid = document.getElementById('dex-grid');
+  const count = document.getElementById('dex-count');
+  const footer = document.getElementById('dex-footer');
+  const storyBtn = document.getElementById('dex-story-btn');
+  
+  count.textContent = `${metChars.size} / 5`;
+  footer.textContent = metChars.size === 5
+    ? '✦ 모든 동료를 만났습니다!'
+    : '▶ MAP에서 동료를 찾아주세요!';
+  
+  // 5명 다 만났을 때 우측 하단 챕터1 버튼 표시
+  if (storyBtn) {
+    storyBtn.classList.toggle('show', metChars.size === 5);
+  }
+  
+  grid.innerHTML = '';
+  
+  ROBOTS.forEach((r, i) => {
+    const met = metChars.has(i);
+    const card = document.createElement('div');
+    card.className = 'dex-card' + (met ? '' : ' locked');
+    card.innerHTML = `
+      <div class="dex-card-num">${r.num}</div>
+      <svg viewBox="0 0 24 24" shape-rendering="crispEdges"><use href="#${r.sprite}"/></svg>
+      <div class="dex-card-name">${met ? r.name : '???'}</div>
+    `;
+    if (met) {
+      card.onclick = () => showDetail(i);
+      card.addEventListener('mouseenter', sndHover);
+    } else {
+      card.onclick = () => {
+        sndBack();
+      };
+    }
+    grid.appendChild(card);
+  });
+  
+  // MAP 버튼 (도감 안에서 다시 맵으로)
+  const mapBtn = document.createElement('div');
+  mapBtn.className = 'dex-card';
+  mapBtn.style.cssText = 'background:var(--gb-dark);cursor:pointer;';
+  mapBtn.innerHTML = `
+    <div class="dex-card-num" style="color:var(--gb-lightest);">MAP</div>
+    <div style="font-family:'DotGothic16',monospace;font-size:11px;color:var(--gb-lightest);margin-top:8px;">▶ 팹으로</div>
+  `;
+  mapBtn.onclick = goMap;
+  grid.appendChild(mapBtn);
+}
+
+function showDetail(idx) {
+  const r = ROBOTS[idx];
+  sndOpen();
+  document.getElementById('d-num').textContent = r.num;
+  document.getElementById('d-name').textContent = r.name;
+  document.getElementById('d-class').textContent = r.cls;
+  document.getElementById('d-desc').textContent = r.desc;
+  document.getElementById('d-quote').textContent = r.quote;
+  document.getElementById('d-art').innerHTML = `<use href="#${r.sprite}"/>`;
+  show('detail');
+}
+
+// ============================================================
+//  STORY MODE — 신입 엔지니어 BM 작업 스토리
+// ============================================================
+const STORY = {
+  active: false,
+  chapter: 1,
+  step: 0,
+  userId: '',
+  beltOk: false,
+  start: null,
+  destination: null
+};
+
+const SAFER_MESSAGES = [
+  'FAB 환경 정상! ✓',
+  '공기질 양호 ✓',
+  '온도 22°C 정상 ✓',
+  '이상 감지!.. 어 정상이네 ✓',
+  '압력 정상 ✓',
+  '청소 완료 🧹',
+  '파티클 측정 OK ✓',
+  '이상 무 ✓'
+];
+let saferLoopTimer = null;
+let saferIdx = 0;
+
+function startSaferLoop() {
+  if (saferLoopTimer) clearInterval(saferLoopTimer);
+  const bubble = document.getElementById('safer-bubble');
+  const showBubble = () => {
+    bubble.textContent = SAFER_MESSAGES[saferIdx % SAFER_MESSAGES.length];
+    bubble.classList.add('show');
+    saferIdx++;
+    setTimeout(() => bubble.classList.remove('show'), 2800);
+  };
+  showBubble();
+  saferLoopTimer = setInterval(showBubble, 4500);
+}
+function stopSaferLoop() {
+  if (saferLoopTimer) { clearInterval(saferLoopTimer); saferLoopTimer = null; }
+}
+
+function startStory() {
+  sndPage();
+  STORY.active = true;
+  STORY.chapter = 1;
+  STORY.step = 0;
+  STORY.userId = '';
+  STORY.beltOk = false;
+  STORY.start = null;
+  STORY.destination = null;
+  show('story');
+  startSaferLoop();
+  renderStoryStep();
+}
+
+// 챕터 라벨 갱신
+function updateChapterTag() {
+  document.getElementById('story-chapter-tag').textContent = `CHAPTER ${STORY.chapter}`;
+}
+
+// 다이얼로그 박스 렌더 helper
+function setStoryDialog(text, nextLabel, onNext) {
+  const area = document.getElementById('story-dialog-area');
+  area.innerHTML = `
+    <div class="story-dialog">
+      <div class="story-dialog-text">${text}</div>
+      ${nextLabel ? `<div class="story-dialog-next" id="story-next-btn">${nextLabel}</div>` : ''}
+    </div>
+  `;
+  if (nextLabel && onNext) {
+    document.getElementById('story-next-btn').onclick = () => { sndNext(); onNext(); };
+  }
+}
+
+function clearStoryStage() {
+  document.getElementById('story-stage-content').innerHTML = '';
+  document.getElementById('story-dialog-area').innerHTML = '';
+}
+
+function renderStoryStep() {
+  updateChapterTag();
+  clearStoryStage();
+  const fn = STORY_STEPS[STORY.step];
+  if (fn) fn();
+}
+
+function nextStep() {
+  STORY.step++;
+  renderStoryStep();
+}
+
+// ─────────────────────────────────────────────
+//  CHAPTER 1: RIDE 호출 & 탑승
+// ─────────────────────────────────────────────
+const STORY_STEPS = [
+  // Step 0: 인트로 다이얼로그 — 신입 엔지니어 등장
+  function step_intro() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <svg class="story-char-art" viewBox="0 0 24 24" shape-rendering="crispEdges">
+        <use href="#engineer-tool-sprite"/>
+      </svg>
+    `;
+    setStoryDialog(
+      '오늘은 ETCH BAY 03에서 <b>BM 작업</b>이 있는 날!<br>장비 부품을 교체해야 해.<br>먼저 라인폰으로 <b>RIDE</b>를 호출하자.',
+      '▶ 계속',
+      nextStep
+    );
+  },
+
+  // Step 1: 라인폰 UI — RIDE 선택 & 호출
+  function step_phone_ride() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-header">▍CONNECT CALL▍</div>
+          <div class="phone-app selected" data-app="ride">
+            <span>🚙 RIDE 호출</span><span class="phone-app-arrow">▶</span>
+          </div>
+          <div class="phone-app"><span>📦 TOOL 호출</span><span class="phone-app-arrow"> </span></div>
+          <div class="phone-app"><span>🗄 PARTS 호출</span><span class="phone-app-arrow"> </span></div>
+          <button class="phone-call-btn" id="phone-call">▶ 호출하기</button>
+        </div>
+        <div class="phone-home"></div>
+      </div>
+    `;
+    document.getElementById('phone-call').onclick = () => { sndOpen(); nextStep(); };
+    setStoryDialog(
+      '<b>🚙 RIDE 호출</b>을 선택했어!<br>호출 버튼을 눌러보자.',
+      null, null
+    );
+  },
+
+  // Step 2: 출발지/목적지 선택 (NEW)
+  function step_route_select() {
+    const stage = document.getElementById('story-stage-content');
+    const startOpts = ['라인입구', 'A반입구', 'BAY 01', 'BAY 02'];
+    const destOpts = [
+      {name: 'ETCH BAY 01', recommended: false},
+      {name: 'ETCH BAY 02', recommended: false},
+      {name: 'ETCH BAY 03', recommended: true},
+      {name: 'CMP BAY 04', recommended: false},
+      {name: 'DIFF BAY 05', recommended: false},
+      {name: 'LITHO BAY 06', recommended: false},
+    ];
+    
+    stage.innerHTML = `
+      <div class="route-select-wrap">
+        <div class="route-section">
+          <div class="route-section-title">📍 출발지</div>
+          <div class="route-options" id="start-opts">
+            ${startOpts.map((o, i) => `
+              <div class="route-option" data-start="${o}">${o}</div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="route-section">
+          <div class="route-section-title">🎯 목적지 (★ = 오늘 일정)</div>
+          <div class="route-options" id="dest-opts">
+            ${destOpts.map(o => `
+              <div class="route-option ${o.recommended ? 'recommended' : ''}" data-dest="${o.name}">${o.name}</div>
+            `).join('')}
+          </div>
+        </div>
+        <button class="route-call-btn" id="route-btn" disabled>▶ RIDE 호출하기</button>
+      </div>
+    `;
+    
+    function updateBtn() {
+      const btn = document.getElementById('route-btn');
+      btn.disabled = !(STORY.start && STORY.destination);
+    }
+    
+    document.querySelectorAll('#start-opts .route-option').forEach(o => {
+      o.onclick = () => {
+        document.querySelectorAll('#start-opts .route-option').forEach(x => x.classList.remove('selected'));
+        o.classList.add('selected');
+        STORY.start = o.dataset.start;
+        sndHover();
+        updateBtn();
+      };
+    });
+    
+    document.querySelectorAll('#dest-opts .route-option').forEach(o => {
+      o.onclick = () => {
+        document.querySelectorAll('#dest-opts .route-option').forEach(x => x.classList.remove('selected'));
+        o.classList.add('selected');
+        STORY.destination = o.dataset.dest;
+        sndHover();
+        updateBtn();
+      };
+    });
+    
+    document.getElementById('route-btn').onclick = () => {
+      if (STORY.destination !== 'ETCH BAY 03') {
+        setStoryDialog(
+          `오늘은 <b>ETCH BAY 03</b>에서 BM 작업이야!<br>다시 선택해줘 ㅎㅎ (★ 표시)`,
+          null, null
+        );
+        sndBack();
+        return;
+      }
+      sndOpen();
+      nextStep();
+    };
+    
+    setStoryDialog(
+      '🗺️ <b>어디서 어디로?</b><br>출발지와 목적지를 골라줘.<br>★ 표시가 오늘 작업 위치!',
+      null, null
+    );
+  },
+
+  // Step 3: 출발지로 RIDE 도착 → 클릭해서 탑승 (NEW)
+  function step_pickup_arrival() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="pickup-scene">
+        <svg viewBox="0 0 200 100" shape-rendering="crispEdges" class="pickup-svg">
+          <!-- 하늘 (밝은 통로 배경) -->
+          <rect x="0" y="0" width="200" height="100" fill="#8bac0f"/>
+          
+          <!-- 건물 (출발지) -->
+          <rect x="0" y="0" width="200" height="42" fill="#306230"/>
+          <rect x="0" y="42" width="200" height="2" fill="#0f380f"/>
+          
+          <!-- 건물 입구 (큰 문) -->
+          <rect x="86" y="22" width="28" height="20" fill="#0f380f"/>
+          <rect x="88" y="24" width="24" height="16" fill="#306230"/>
+          <rect x="99" y="36" width="2" height="3" fill="#9bbc0f"/>
+          
+          <!-- 창문들 (좌우 4개씩) -->
+          <rect x="6" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="20" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="34" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="48" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="62" y="10" width="10" height="8" fill="#0f380f"/>
+          
+          <rect x="128" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="142" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="156" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="170" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="184" y="10" width="10" height="8" fill="#0f380f"/>
+          
+          <!-- 출발지 라벨 (지붕 위) -->
+          <text x="100" y="6" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">▼ ${STORY.start || '라인입구'}</text>
+          
+          <!-- 출발지 입구 표지 -->
+          <text x="100" y="32" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">ENTRANCE</text>
+          
+          <!-- 도로 영역 (회색 도로) -->
+          <rect x="0" y="60" width="200" height="40" fill="#8bac0f"/>
+          
+          <!-- 인도 (건물 ~ 도로 사이) -->
+          <rect x="0" y="48" width="200" height="12" fill="#306230" opacity="0.7"/>
+          <rect x="0" y="46" width="200" height="2" fill="#9bbc0f" opacity="0.5"/>
+          
+          <!-- 차선 점선 -->
+          <rect x="3" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="13" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="23" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="33" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="43" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="53" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="63" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="73" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="83" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="93" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="103" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="113" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="123" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="133" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="143" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="153" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="163" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="173" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="183" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="193" y="78" width="5" height="2" fill="#0f380f"/>
+          
+          <!-- 픽업 표시 (정류장 같은 마커) - 건물 앞 -->
+          <rect x="98" y="50" width="4" height="10" fill="#9bbc0f"/>
+          <rect x="96" y="46" width="8" height="4" fill="#0f380f"/>
+          <text x="100" y="49" font-family="monospace" font-size="2.5" text-anchor="middle" fill="#9bbc0f">P</text>
+          
+          <!-- 핑 신호 (호출 중) - 처음에 보이고 RIDE 도착하면 사라짐 -->
+          <g id="pickup-ping">
+            <circle cx="100" cy="80" r="6" fill="none" stroke="#0f380f" stroke-width="1">
+              <animate attributeName="r" values="6;16;6" dur="1.2s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="100" cy="80" r="2" fill="#0f380f">
+              <animate attributeName="opacity" values="1;0.3;1" dur="0.6s" repeatCount="indefinite"/>
+            </circle>
+          </g>
+          
+          <!-- RIDE (우측 밖에서 시작 → 픽업 위치로 도착) -->
+          <g id="pickup-ride" transform="translate(220, 68)">
+            <use href="#wave-sprite" width="24" height="24"/>
+            <animateTransform 
+              attributeName="transform" type="translate"
+              values="220 68; 200 68; 180 68; 160 68; 140 68; 120 68; 110 68; 100 68; 92 68; 88 68"
+              keyTimes="0; 0.12; 0.24; 0.36; 0.48; 0.6; 0.72; 0.84; 0.95; 1"
+              dur="2.5s" fill="freeze" begin="1s"
+              calcMode="discrete"/>
+          </g>
+          
+          <!-- "클릭!" 안내 (RIDE 도착 후) -->
+          <g id="pickup-click-mark" opacity="0">
+            <rect x="96" y="58" width="8" height="8" fill="#9bbc0f" stroke="#0f380f" stroke-width="0.5"/>
+            <text x="100" y="64" font-family="monospace" font-size="6" text-anchor="middle" fill="#0f380f" font-weight="bold">!</text>
+            <animate attributeName="opacity" values="0;1" begin="3.6s" dur="0.3s" fill="freeze"/>
+            <animateTransform attributeName="transform" type="translate"
+              values="0 0; 0 -2; 0 0" keyTimes="0;0.5;1"
+              begin="3.6s" dur="0.5s" repeatCount="indefinite"/>
+          </g>
+        </svg>
+        <div class="pickup-hint" id="pickup-hint">📡 호출 중...</div>
+      </div>
+    `;
+    
+    setStoryDialog(
+      `📡 <b>RIDE 호출 중...</b><br>${STORY.start || '라인입구'}으로 RIDE가 오고 있어!`,
+      null, null
+    );
+    
+    sndEncounter();
+    
+    // RIDE 도착 (3.5초 - 호출 1초 + 이동 2.5초)
+    setTimeout(() => {
+      sndRegister();
+      const ping = document.getElementById('pickup-ping');
+      if (ping) ping.remove();
+      
+      const hint = document.getElementById('pickup-hint');
+      if (hint) {
+        hint.textContent = '▶ RIDE를 클릭해 탑승!';
+        hint.classList.add('action');
+      }
+      
+      setStoryDialog(
+        `🚙 <b>RIDE 도착!</b><br>화면의 RIDE를 클릭해서 탑승하자!`,
+        null, null
+      );
+      
+      // RIDE 클릭 가능하게
+      const ride = document.getElementById('pickup-ride');
+      if (ride) {
+        ride.classList.add('pickup-ride-clickable');
+        ride.onclick = () => {
+          sndOpen();
+          nextStep();
+        };
+      }
+    }, 3600);
+  },
+
+  // Step 4: 엔지니어 2명이 RIDE로 다가가서 탑승 (NEW)
+  function step_board() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="pickup-scene">
+        <svg viewBox="0 0 200 100" shape-rendering="crispEdges" class="pickup-svg">
+          <!-- 배경 (Step 3와 동일) -->
+          <rect x="0" y="0" width="200" height="100" fill="#8bac0f"/>
+          <rect x="0" y="0" width="200" height="42" fill="#306230"/>
+          <rect x="0" y="42" width="200" height="2" fill="#0f380f"/>
+          <rect x="86" y="22" width="28" height="20" fill="#0f380f"/>
+          <rect x="88" y="24" width="24" height="16" fill="#306230"/>
+          <rect x="99" y="36" width="2" height="3" fill="#9bbc0f"/>
+          <rect x="6" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="20" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="34" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="48" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="62" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="128" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="142" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="156" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="170" y="10" width="10" height="8" fill="#0f380f"/>
+          <rect x="184" y="10" width="10" height="8" fill="#0f380f"/>
+          <text x="100" y="6" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">▼ ${STORY.start || '라인입구'}</text>
+          <text x="100" y="32" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">ENTRANCE</text>
+          <rect x="0" y="60" width="200" height="40" fill="#8bac0f"/>
+          <rect x="0" y="48" width="200" height="12" fill="#306230" opacity="0.7"/>
+          <rect x="0" y="46" width="200" height="2" fill="#9bbc0f" opacity="0.5"/>
+          
+          <!-- 차선 -->
+          <rect x="3" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="13" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="23" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="33" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="43" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="53" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="63" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="73" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="83" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="93" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="103" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="113" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="123" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="133" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="143" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="153" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="163" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="173" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="183" y="78" width="5" height="2" fill="#0f380f"/>
+          <rect x="193" y="78" width="5" height="2" fill="#0f380f"/>
+          
+          <rect x="98" y="50" width="4" height="10" fill="#9bbc0f"/>
+          <rect x="96" y="46" width="8" height="4" fill="#0f380f"/>
+          <text x="100" y="49" font-family="monospace" font-size="2.5" text-anchor="middle" fill="#9bbc0f">P</text>
+
+          <!-- RIDE (출발지 위치에 멈춰있음) -->
+          <g transform="translate(88, 68)">
+            <use href="#wave-sprite" width="24" height="24"/>
+          </g>
+          
+          <!-- 엔지니어 1 (입구에서 등장 → RIDE 좌측으로) -->
+          <g id="engineer-1">
+            <use href="#engineer-sprite" width="13" height="13"/>
+            <animateTransform 
+              attributeName="transform" type="translate"
+              values="95 38; 92 44; 89 50; 86 56; 83 62; 80 68; 84 72; 86 73"
+              keyTimes="0; 0.14; 0.28; 0.42; 0.56; 0.7; 0.85; 1"
+              dur="2.5s" fill="freeze" begin="0.4s"
+              calcMode="discrete"/>
+            <animate attributeName="opacity" 
+              values="1;1;0" keyTimes="0;0.97;1" 
+              dur="2.6s" fill="freeze" begin="0.4s"/>
+          </g>
+          
+          <!-- 엔지니어 2 (조금 뒤따라옴) -->
+          <g id="engineer-2">
+            <use href="#engineer-tool-sprite" width="13" height="13"/>
+            <animateTransform 
+              attributeName="transform" type="translate"
+              values="103 38; 100 44; 97 50; 94 56; 91 62; 96 68; 100 72; 102 73"
+              keyTimes="0; 0.14; 0.28; 0.42; 0.56; 0.7; 0.85; 1"
+              dur="2.5s" fill="freeze" begin="0.9s"
+              calcMode="discrete"/>
+            <animate attributeName="opacity" 
+              values="1;1;0" keyTimes="0;0.97;1" 
+              dur="2.6s" fill="freeze" begin="0.9s"/>
+          </g>
+          
+          <!-- RIDE 좌석 안 엔지니어 (탑승 완료 후 등장) -->
+          <g id="boarded-engineers" opacity="0" transform="translate(88, 68)">
+            <use href="#wave-with-engineers-sprite" width="24" height="24"/>
+            <animate attributeName="opacity" values="0;1" begin="3.1s" dur="0.4s" fill="freeze"/>
+          </g>
+        </svg>
+        <div class="pickup-hint">🚶 탑승 중...</div>
+      </div>
+    `;
+    
+    setStoryDialog(
+      `🚶 <b>엔지니어 2명 탑승!</b><br>"안녕하세요!" "잘 부탁드립니다."`,
+      null, null
+    );
+    
+    sndPage();
+    
+    // 발걸음 소리 (걷는 중)
+    setTimeout(() => sndHover(), 800);
+    setTimeout(() => sndHover(), 1600);
+    setTimeout(() => sndHover(), 2400);
+    
+    // 탑승 완료
+    setTimeout(() => {
+      sndRegister();
+      const hint = document.querySelector('.pickup-hint');
+      if (hint) {
+        hint.textContent = '✓ 탑승 완료!';
+        hint.classList.add('action');
+      }
+    }, 3200);
+    
+    // 다음 단계
+    setTimeout(() => {
+      nextStep();
+    }, 4000);
+  },
+
+  // Step 3: 사번 인증
+  function step_auth() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <svg viewBox="0 0 24 24" shape-rendering="crispEdges" style="width:60px;height:60px;image-rendering:pixelated;">
+          <use href="#wave-with-engineers-sprite"/>
+        </svg>
+        <div class="story-card">
+          <div class="story-card-title">▍사용자 인증▍</div>
+          <div style="font-family:'DotGothic16',monospace;font-size:11px;color:var(--gb-darkest);text-align:center;margin-bottom:6px;">
+            사번 8자리를 입력하세요
+          </div>
+          <input type="text" id="auth-input" class="story-input" maxlength="8" placeholder="00000000" inputmode="numeric"/>
+          <button class="story-btn" id="auth-btn" disabled>▶ 인증하기</button>
+        </div>
+      </div>
+    `;
+    const input = document.getElementById('auth-input');
+    const btn = document.getElementById('auth-btn');
+    input.focus();
+    input.oninput = () => {
+      const v = input.value.replace(/\D/g, '');
+      input.value = v;
+      btn.disabled = v.length !== 8;
+    };
+    btn.onclick = () => {
+      STORY.userId = input.value;
+      sndRegister();
+      nextStep();
+    };
+    setStoryDialog(
+      '사번을 입력해야 탑승할 수 있어!<br>(아무 8자리 숫자 입력)',
+      null, null
+    );
+  },
+
+  // Step 4: 안전벨트 체크
+  function step_seatbelt() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <svg viewBox="0 0 24 24" shape-rendering="crispEdges" style="width:60px;height:60px;image-rendering:pixelated;">
+          <use href="#wave-with-engineers-sprite"/>
+        </svg>
+        <div class="story-card">
+          <div class="story-card-title">▍안전 확인▍</div>
+          <div class="story-check-row" id="belt-row">
+            <span class="story-checkbox" id="belt-box"></span>
+            <span style="white-space:nowrap;">안전벨트 착용</span>
+          </div>
+          <button class="story-btn" id="belt-btn" disabled>▶ 출발 준비 완료</button>
+        </div>
+      </div>
+    `;
+    const row = document.getElementById('belt-row');
+    const box = document.getElementById('belt-box');
+    const btn = document.getElementById('belt-btn');
+    row.onclick = () => {
+      STORY.beltOk = !STORY.beltOk;
+      box.classList.toggle('checked', STORY.beltOk);
+      btn.disabled = !STORY.beltOk;
+      sndHover();
+    };
+    btn.onclick = () => { sndOpen(); nextStep(); };
+    setStoryDialog(
+      'RIDE는 안전이 최우선!<br>안전벨트는 <b>필수</b>야 ㅎㅎ',
+      null, null
+    );
+  },
+
+  // Step 5는 step_route_select(Step 2)로 통합되어 제거됨
+
+  // Step 6: 이동 중 — 진짜 FAB 맵 위에서 RIDE가 이동 (엔지니어 2명 탑승!)
+  function step_travel() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="fab-travel-wrap">
+        <svg viewBox="0 0 200 100" shape-rendering="crispEdges" class="fab-travel-svg">
+          <!-- ========== 어두운 외곽 배경 ========== -->
+          <rect x="0" y="0" width="200" height="100" fill="#0f380f"/>
+          
+          <!-- ========== 상단 설비 영역 ========== -->
+          <rect x="0" y="0" width="200" height="30" fill="#306230"/>
+          
+          <!-- 상단 설비 박스들 -->
+          <rect x="2" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="34" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="66" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="98" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="130" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="162" y="3" width="36" height="22" fill="#0f380f"/>
+
+          <!-- 설비 안 PM tool 디테일 (PHOTO) -->
+          <rect x="5" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="12" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="19" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="26" y="6" width="4" height="5" fill="#306230"/>
+          <rect x="5" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="12" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="19" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="26" y="13" width="4" height="5" fill="#306230"/>
+          
+          <!-- CMP -->
+          <rect x="37" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="44" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="51" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="58" y="6" width="4" height="5" fill="#306230"/>
+          <rect x="37" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="44" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="51" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="58" y="13" width="4" height="5" fill="#306230"/>
+          
+          <!-- ★ ETCH (목적지) - 강조! 안에 PM tool들 + 깜빡임 -->
+          <rect x="68" y="5" width="26" height="18" fill="#306230" stroke="#9bbc0f" stroke-width="0.5">
+            <animate attributeName="stroke" values="#9bbc0f;#8bac0f;#9bbc0f" dur="0.8s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="70" y="7" width="5" height="6" fill="#0f380f"/>
+          <rect x="77" y="7" width="5" height="6" fill="#0f380f"/>
+          <rect x="84" y="7" width="5" height="6" fill="#0f380f"/>
+          <rect x="91" y="7" width="2" height="6" fill="#0f380f"/>
+          <rect x="70" y="15" width="5" height="6" fill="#0f380f"/>
+          <rect x="77" y="15" width="5" height="6" fill="#0f380f"/>
+          <rect x="84" y="15" width="5" height="6" fill="#0f380f"/>
+          <rect x="91" y="15" width="2" height="6" fill="#0f380f"/>
+          <!-- BAY 03 표시 + 화살표 -->
+          <text x="81" y="11" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f" font-weight="bold">★</text>
+          
+          <!-- 4-MOD -->
+          <rect x="101" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="108" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="115" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="122" y="6" width="4" height="5" fill="#306230"/>
+          <rect x="101" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="108" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="115" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="122" y="13" width="4" height="5" fill="#306230"/>
+          
+          <!-- DIFFUSION -->
+          <rect x="133" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="140" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="147" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="154" y="6" width="4" height="5" fill="#306230"/>
+          <rect x="133" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="140" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="147" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="154" y="13" width="4" height="5" fill="#306230"/>
+          
+          <!-- RCS (마지막) -->
+          <rect x="165" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="172" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="179" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="186" y="6" width="5" height="5" fill="#306230"/>
+          <rect x="165" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="172" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="179" y="13" width="5" height="5" fill="#306230"/>
+          <rect x="186" y="13" width="5" height="5" fill="#306230"/>
+
+          <!-- 상단 설비 라벨 -->
+          <text x="17" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">PHOTO</text>
+          <text x="49" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">CMP</text>
+          <text x="81" y="29" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">▼ETCH</text>
+          <text x="113" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">4-MOD</text>
+          <text x="145" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">DIFF</text>
+          <text x="180" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">RCS</text>
+          
+          <!-- ========== 메인 통로 ========== -->
+          <rect x="0" y="32" width="200" height="34" fill="#8bac0f"/>
+          
+          <!-- 차선 점선 (중앙) -->
+          <rect x="3" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="13" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="23" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="33" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="43" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="53" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="63" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="73" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="83" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="93" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="103" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="113" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="123" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="133" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="143" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="153" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="163" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="173" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="183" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="193" y="48" width="5" height="2" fill="#9bbc0f"/>
+          
+          <!-- 출발지 표시 (좌측 끝) -->
+          <rect x="3" y="42" width="6" height="14" fill="#306230" opacity="0.5"/>
+          <text x="6" y="61" font-family="monospace" font-size="3" text-anchor="middle" fill="#306230">START</text>
+          
+          <!-- 목적지 표시 (BAY 03 ETCH 앞) - 깜빡임 큰 원! -->
+          <circle cx="81" cy="50" r="6" fill="none" stroke="#0f380f" stroke-width="1">
+            <animate attributeName="r" values="6;10;6" dur="1.2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="81" cy="50" r="3" fill="#0f380f" opacity="0.5">
+            <animate attributeName="opacity" values="0.5;1;0.5" dur="0.6s" repeatCount="indefinite"/>
+          </circle>
+          <text x="81" y="62" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#0f380f" font-weight="bold">BAY 03</text>
+          
+          <!-- ========== 하단 설비 영역 ========== -->
+          <rect x="0" y="68" width="200" height="32" fill="#306230"/>
+          
+          <!-- 하단 설비 박스들 -->
+          <rect x="2" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="34" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="66" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="98" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="130" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="162" y="71" width="36" height="22" fill="#0f380f"/>
+          
+          <!-- 하단 설비 안 디테일 -->
+          <rect x="5" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="12" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="19" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="26" y="74" width="4" height="5" fill="#306230"/>
+          <rect x="5" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="12" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="19" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="26" y="81" width="4" height="5" fill="#306230"/>
+          
+          <rect x="37" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="44" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="51" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="58" y="74" width="4" height="5" fill="#306230"/>
+          <rect x="37" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="44" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="51" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="58" y="81" width="4" height="5" fill="#306230"/>
+          
+          <rect x="69" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="76" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="83" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="90" y="74" width="4" height="5" fill="#306230"/>
+          <rect x="69" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="76" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="83" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="90" y="81" width="4" height="5" fill="#306230"/>
+
+          <rect x="101" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="108" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="115" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="122" y="74" width="4" height="5" fill="#306230"/>
+          <rect x="101" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="108" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="115" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="122" y="81" width="4" height="5" fill="#306230"/>
+          
+          <rect x="133" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="140" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="147" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="154" y="74" width="4" height="5" fill="#306230"/>
+          <rect x="133" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="140" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="147" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="154" y="81" width="4" height="5" fill="#306230"/>
+          
+          <rect x="165" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="172" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="179" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="186" y="74" width="5" height="5" fill="#306230"/>
+          <rect x="165" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="172" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="179" y="81" width="5" height="5" fill="#306230"/>
+          <rect x="186" y="81" width="5" height="5" fill="#306230"/>
+
+          <!-- 하단 설비 라벨 -->
+          <text x="17" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">DIFF</text>
+          <text x="49" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">IMP</text>
+          <text x="81" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">METAL</text>
+          <text x="113" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">METRO</text>
+          <text x="145" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">PROBE</text>
+          <text x="180" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">RCS</text>
+
+          <!-- ========== RIDE + 엔지니어 2명 (이동!) ========== -->
+          <g id="fab-travel-ride" transform="translate(-24, 38)">
+            <use href="#wave-with-engineers-sprite" width="24" height="24"/>
+            
+            <!-- 이동 애니메이션 (출발지 → ETCH 앞) -->
+            <animateTransform 
+              attributeName="transform" 
+              type="translate"
+              values="-24 38; -8 38; 8 38; 24 38; 40 38; 56 38; 69 38"
+              keyTimes="0; 0.16; 0.32; 0.5; 0.66; 0.82; 1"
+              dur="4.2s" fill="freeze" begin="0.3s"
+              calcMode="discrete"/>
+          </g>
+          
+          <!-- 트레일 효과 (RIDE 뒤 흔적) -->
+          <g id="ride-trail" opacity="0.6">
+            <circle cx="0" cy="50" r="0.8" fill="#9bbc0f">
+              <animate attributeName="cx" values="-20;-4;12;28;44;60" keyTimes="0;0.2;0.4;0.6;0.8;1" 
+                begin="0.5s" dur="4s" fill="freeze"/>
+              <animate attributeName="opacity" values="0.8;0" dur="0.5s" repeatCount="indefinite" begin="0.5s"/>
+            </circle>
+          </g>
+        </svg>
+        
+        <!-- 진행바 -->
+        <div class="fab-progress">
+          <div class="fab-progress-label" id="fab-progress-label">사무동 → BAY 03   0%</div>
+          <div class="fab-progress-bar">
+            <div class="fab-progress-fill" id="fab-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    setStoryDialog(
+      '🚙 <b>이동 중...</b><br>"자율주행 모드 작동! 곧 ETCH BAY 03에 도착합니다." 🛣️',
+      null, null
+    );
+    
+    sndPage();
+    
+    // 진행바 + 퍼센트 카운트
+    setTimeout(() => {
+      const fill = document.getElementById('fab-progress-fill');
+      if (fill) fill.style.width = '100%';
+      
+      let pct = 0;
+      const tick = setInterval(() => {
+        pct += 4;
+        if (pct > 100) pct = 100;
+        const label = document.getElementById('fab-progress-label');
+        if (label) label.textContent = `사무동 → BAY 03   ${pct}%`;
+        if (pct >= 100) {
+          clearInterval(tick);
+          if (label) label.textContent = `★ BAY 03 도착! ✓`;
+        }
+      }, 170);
+      
+      // 중간 사운드 (출발음)
+      setTimeout(() => sndHover(), 1500);
+      setTimeout(() => sndHover(), 3000);
+    }, 200);
+    
+    // 4.7초 뒤 도착
+    setTimeout(() => {
+      sndRegister();
+      nextStep();
+    }, 4700);
+  },
+
+  // Step 7: 도착 + 챕터 클리어
+  function step_arrived() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="chapter-clear">
+        <svg viewBox="0 0 24 24" shape-rendering="crispEdges" style="width:80px;height:80px;image-rendering:pixelated;margin-bottom:6px;">
+          <use href="#wave-with-engineers-sprite"/>
+        </svg>
+        <div class="chapter-clear-title">✦ CHAPTER 1 CLEAR ✦</div>
+        <div class="chapter-clear-msg">
+          🚙 <b>ETCH BAY 03 도착!</b><br>
+          이제 BM 작업을 시작해볼까?
+        </div>
+        <div class="chapter-clear-next" id="chapter-next">▶ 챕터 2로 계속</div>
+      </div>
+    `;
+    document.getElementById('chapter-next').onclick = () => {
+      sndRegister();
+      startChapter2();
+    };
+    setStoryDialog(
+      '<b>RIDE</b>와 함께 무사히 도착!<br>BM 작업 시작 준비 완료 ✓',
+      null, null
+    );
+  }
+];
+
+// ─────────────────────────────────────────────
+//  CHAPTER 2: 국소배기 없다! TOOL + AIR 콜라보
+// ─────────────────────────────────────────────
+function startChapter2() {
+  STORY.chapter = 2;
+  STORY.step = 0;
+  updateChapterTag();
+  document.getElementById('story-chapter-tag').textContent = 'CHAPTER 2';
+  playChapter2Scene(0);
+}
+
+function playChapter2Scene(idx) {
+  STORY.step = idx;
+  if (idx >= CHAPTER_2_SCENES.length) {
+    chapter2Complete();
+    return;
+  }
+  clearStoryStage();
+  CHAPTER_2_SCENES[idx]();
+}
+
+function nextChapter2Step() {
+  sndNext();
+  playChapter2Scene(STORY.step + 1);
+}
+
+const CHAPTER_2_SCENES = [
+
+  // Scene 0: 어? 국소배기가 없네!
+  function c2_no_exhaust() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+        <svg viewBox="0 0 80 60" shape-rendering="crispEdges" style="width:160px;height:120px;image-rendering:pixelated;">
+          <!-- 설비 앞 배경 -->
+          <rect x="0" y="0" width="80" height="60" fill="#8bac0f"/>
+          <!-- 설비 벽 -->
+          <rect x="0" y="0" width="80" height="28" fill="#306230"/>
+          <!-- 설비 패널들 -->
+          <rect x="4" y="4" width="14" height="18" fill="#0f380f"/>
+          <rect x="20" y="4" width="14" height="18" fill="#0f380f"/>
+          <rect x="36" y="4" width="14" height="18" fill="#0f380f"/>
+          <rect x="52" y="4" width="14" height="18" fill="#0f380f"/>
+          <rect x="66" y="4" width="10" height="18" fill="#0f380f"/>
+          <!-- 설비 안 디테일 -->
+          <rect x="6" y="6" width="4" height="4" fill="#306230"/>
+          <rect x="12" y="6" width="4" height="4" fill="#306230"/>
+          <rect x="22" y="6" width="4" height="4" fill="#306230"/>
+          <rect x="28" y="6" width="4" height="4" fill="#306230"/>
+          <rect x="38" y="6" width="4" height="4" fill="#306230"/>
+          <rect x="44" y="6" width="4" height="4" fill="#306230"/>
+          <!-- BAY 03 라벨 -->
+          <text x="40" y="27" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">ETCH BAY 03</text>
+          <!-- 바닥 -->
+          <rect x="0" y="28" width="80" height="32" fill="#8bac0f"/>
+          <!-- 엔지니어 (우측 향, 설비 앞에 서있음) -->
+          <g transform="translate(28, 32)">
+            <use href="#engineer-tool-sprite" width="14" height="14"/>
+          </g>
+          <!-- 빈 공간 표시 (국소배기 없음) -->
+          <rect x="46" y="34" width="16" height="16" fill="none" stroke="#0f380f" stroke-width="1" stroke-dasharray="2,1"/>
+          <text x="54" y="42" font-family="monospace" font-size="4" text-anchor="middle" fill="#0f380f">?</text>
+          <text x="54" y="48" font-family="monospace" font-size="3" text-anchor="middle" fill="#0f380f">없음</text>
+        </svg>
+      </div>
+    `;
+    setStoryDialog(
+      '"어? 국소배기가 없네!?" 😰<br>BM 작업인데 국소배기 없으면<br>작업을 시작할 수가 없어...',
+      '▶ 계속',
+      nextChapter2Step
+    );
+  },
+
+  // Scene 1: AIR 신호 발신 — 카트 위치 추적 중
+  function c2_air_signal() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+        <svg viewBox="0 0 120 90" shape-rendering="crispEdges" style="width:200px;height:150px;image-rendering:pixelated;">
+          <!-- 배경 (FAB 전체 미니맵 느낌) -->
+          <rect x="0" y="0" width="120" height="90" fill="#0f380f"/>
+          <!-- 설비 격자 -->
+          <rect x="2" y="2" width="18" height="12" fill="#306230"/>
+          <rect x="22" y="2" width="18" height="12" fill="#306230"/>
+          <rect x="42" y="2" width="18" height="12" fill="#306230"/>
+          <rect x="62" y="2" width="18" height="12" fill="#306230"/>
+          <rect x="82" y="2" width="18" height="12" fill="#306230"/>
+          <rect x="102" y="2" width="16" height="12" fill="#306230"/>
+          <!-- 설비 라벨 -->
+          <text x="11" y="9" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">PHOTO</text>
+          <text x="31" y="9" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">CMP</text>
+          <text x="51" y="9" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f" font-weight="bold">ETCH</text>
+          <text x="71" y="9" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">4-MOD</text>
+          <text x="91" y="9" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">DIFF</text>
+          <text x="110" y="9" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">RCS</text>
+          <!-- 메인 통로 -->
+          <rect x="0" y="16" width="120" height="20" fill="#8bac0f"/>
+          <!-- 통로 차선 -->
+          <rect x="4" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="12" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="20" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="28" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="36" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="44" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="52" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="60" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="68" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="76" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="84" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="92" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="100" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <rect x="108" y="25" width="4" height="1" fill="#9bbc0f" opacity="0.6"/>
+          <!-- 하단 설비 -->
+          <rect x="2" y="38" width="18" height="12" fill="#306230"/>
+          <rect x="22" y="38" width="18" height="12" fill="#306230"/>
+          <rect x="42" y="38" width="18" height="12" fill="#306230"/>
+          <rect x="62" y="38" width="18" height="12" fill="#306230"/>
+          <rect x="82" y="38" width="18" height="12" fill="#306230"/>
+          <rect x="102" y="38" width="16" height="12" fill="#306230"/>
+          <!-- AIR (국소배기 카트, 통로 어딘가에 있음) -->
+          <g transform="translate(78, 19)">
+            <use href="#air-sprite" width="14" height="14"/>
+          </g>
+          <!-- AIR 위치 신호 펄스 -->
+          <circle cx="86" cy="26" r="4" fill="none" stroke="#9bbc0f" stroke-width="0.8">
+            <animate attributeName="r" values="4;10;4" dur="1.4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;0;1" dur="1.4s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="86" cy="26" r="4" fill="none" stroke="#8bac0f" stroke-width="0.5">
+            <animate attributeName="r" values="4;16;4" dur="1.4s" begin="0.4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.8;0;0.8" dur="1.4s" begin="0.4s" repeatCount="indefinite"/>
+          </circle>
+          <!-- 신호선 (AIR → ETCH BAY 03) -->
+          <line x1="86" y1="26" x2="51" y2="16" stroke="#9bbc0f" stroke-width="0.5" stroke-dasharray="2,1">
+            <animate attributeName="opacity" values="1;0.2;1" dur="0.8s" repeatCount="indefinite"/>
+          </line>
+          <!-- ETCH BAY 03 표시 (목적지 마커) -->
+          <circle cx="51" cy="14" r="3" fill="#9bbc0f">
+            <animate attributeName="opacity" values="1;0.4;1" dur="0.6s" repeatCount="indefinite"/>
+          </circle>
+          <text x="51" y="13" font-family="monospace" font-size="2.5" text-anchor="middle" fill="#0f380f" font-weight="bold">★</text>
+          <!-- 시스템 화면 (우측 하단 — 수신 중) -->
+          <rect x="2" y="54" width="116" height="34" fill="#0f380f"/>
+          <rect x="4" y="56" width="112" height="30" fill="#306230"/>
+          <text x="10" y="65" font-family="monospace" font-size="3.5" fill="#9bbc0f" font-weight="bold">▌ AIR TRACKING SYSTEM</text>
+          <text x="10" y="73" font-family="monospace" font-size="3" fill="#8bac0f">Device: CAFU-07</text>
+          <text x="10" y="79" font-family="monospace" font-size="3" fill="#8bac0f">Location: MAIN-LINE x=86</text>
+          <text x="80" y="73" font-family="monospace" font-size="3" fill="#9bbc0f">Signal: ●●●○</text>
+          <text x="80" y="79" font-family="monospace" font-size="3" fill="#9bbc0f">
+            Status: LIVE
+            <animate attributeName="opacity" values="1;0.2;1" dur="0.8s" repeatCount="indefinite"/>
+          </text>
+        </svg>
+      </div>
+    `;
+    setStoryDialog(
+      '📡 <b>AIR가 신호를 발신 중!</b><br>국소배기 카트 위치를 추적했어.<br>"CAFU-07 발견! MAIN-LINE 대기 중"',
+      '▶ TOOL 호출하러 가자!',
+      nextChapter2Step
+    );
+    sndEncounter();
+  },
+
+  // Scene 2: 라인폰 → TOOL 호출
+  function c2_call_tool() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-header">▍CONNECT CALL▍</div>
+          <div class="phone-app"><span>🚙 RIDE 호출</span><span class="phone-app-arrow"> </span></div>
+          <div class="phone-app selected">
+            <span>🛠 TOOL 호출</span><span class="phone-app-arrow">▶</span>
+          </div>
+          <div class="phone-app"><span>🗄 PARTS 호출</span><span class="phone-app-arrow"> </span></div>
+          <button class="phone-call-btn" id="tool-call-btn">▶ 국소배기 요청</button>
+        </div>
+        <div class="phone-home"></div>
+      </div>
+    `;
+    document.getElementById('tool-call-btn').onclick = () => { sndOpen(); nextChapter2Step(); };
+    setStoryDialog(
+      '📱 <b>TOOL 호출!</b><br>"CAFU-07 국소배기를<br>ETCH BAY 03으로 가져와줘!"',
+      null, null
+    );
+  },
+
+  // Scene 3: TOOL이 국소배기 싣고 FAB 맵 이동
+  function c2_tool_travel() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="fab-travel-wrap">
+        <svg viewBox="0 0 200 100" shape-rendering="crispEdges" class="fab-travel-svg">
+          <!-- 배경 -->
+          <rect x="0" y="0" width="200" height="100" fill="#0f380f"/>
+          <!-- 상단 설비 -->
+          <rect x="0" y="0" width="200" height="30" fill="#306230"/>
+          <rect x="2" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="34" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="66" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="98" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="130" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="162" y="3" width="36" height="22" fill="#0f380f"/>
+          <!-- ETCH 강조 -->
+          <rect x="66" y="5" width="26" height="18" fill="#306230" stroke="#9bbc0f" stroke-width="0.5">
+            <animate attributeName="stroke" values="#9bbc0f;#8bac0f;#9bbc0f" dur="0.8s" repeatCount="indefinite"/>
+          </rect>
+          <text x="79" y="11" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">ETCH</text>
+          <text x="79" y="16" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f" font-weight="bold">★BAY03</text>
+          <!-- 설비 라벨 -->
+          <text x="17" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">PHOTO</text>
+          <text x="49" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">CMP</text>
+          <text x="113" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">4-MOD</text>
+          <text x="145" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">DIFF</text>
+          <text x="180" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">RCS</text>
+          <!-- 메인 통로 -->
+          <rect x="0" y="32" width="200" height="34" fill="#8bac0f"/>
+          <!-- 차선 -->
+          <rect x="3" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="13" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="23" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="33" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="43" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="53" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="63" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="73" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="83" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="93" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="103" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="113" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="123" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="133" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="143" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="153" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="163" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="173" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="183" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="193" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <!-- 목적지 마커 (ETCH BAY 03 앞) -->
+          <circle cx="79" cy="50" r="5" fill="none" stroke="#0f380f" stroke-width="1">
+            <animate attributeName="r" values="5;9;5" dur="1.2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <text x="79" y="62" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#0f380f" font-weight="bold">BAY 03</text>
+          <!-- 하단 설비 -->
+          <rect x="0" y="68" width="200" height="32" fill="#306230"/>
+          <rect x="2" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="34" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="66" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="98" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="130" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="162" y="71" width="36" height="22" fill="#0f380f"/>
+          <text x="17" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">DIFF</text>
+          <text x="49" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">IMP</text>
+          <text x="81" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">METAL</text>
+          <text x="113" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">METRO</text>
+          <text x="145" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">PROBE</text>
+          <text x="180" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">RCS</text>
+          <!-- TOOL (우측에서 출발 → ETCH 앞으로 이동) -->
+          <g id="tool-travel-bot" transform="translate(220, 38)">
+            <use href="#tool-with-exhaust-sprite" width="22" height="22"/>
+            <animateTransform
+              attributeName="transform" type="translate"
+              values="220 38; 190 38; 160 38; 130 38; 110 38; 90 38; 75 38; 67 38"
+              keyTimes="0; 0.14; 0.28; 0.42; 0.56; 0.7; 0.85; 1"
+              dur="4s" fill="freeze" begin="0.3s"
+              calcMode="discrete"/>
+          </g>
+        </svg>
+        <!-- 진행바 -->
+        <div class="fab-progress">
+          <div class="fab-progress-label" id="tool-progress-label">TOOL 출발 → ETCH BAY 03   0%</div>
+          <div class="fab-progress-bar">
+            <div class="fab-progress-fill" id="tool-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    setStoryDialog(
+      '🛠 <b>TOOL 출동!</b><br>"국소배기 싣고 BAY 03으로 이동 중..."<br>잠시만 기다려줘!',
+      null, null
+    );
+    sndPage();
+    setTimeout(() => {
+      const fill = document.getElementById('tool-progress-fill');
+      if (fill) fill.style.width = '100%';
+      let pct = 0;
+      const tick = setInterval(() => {
+        pct += 4;
+        if (pct > 100) pct = 100;
+        const label = document.getElementById('tool-progress-label');
+        if (label) label.textContent = `TOOL 출발 → ETCH BAY 03   ${pct}%`;
+        if (pct >= 100) {
+          clearInterval(tick);
+          if (label) label.textContent = `★ BAY 03 도착! ✓`;
+        }
+      }, 160);
+      setTimeout(() => sndHover(), 1500);
+      setTimeout(() => sndHover(), 3000);
+    }, 300);
+    setTimeout(() => { sndRegister(); nextChapter2Step(); }, 4500);
+  },
+
+  // Scene 4: TOOL 도착 + 국소배기 설치 완료
+  function c2_tool_arrived() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <svg viewBox="0 0 100 70" shape-rendering="crispEdges" style="width:200px;height:140px;image-rendering:pixelated;">
+          <!-- 배경 -->
+          <rect x="0" y="0" width="100" height="70" fill="#8bac0f"/>
+          <!-- 설비 벽 -->
+          <rect x="0" y="0" width="100" height="30" fill="#306230"/>
+          <rect x="4" y="4" width="20" height="20" fill="#0f380f"/>
+          <rect x="26" y="4" width="20" height="20" fill="#0f380f"/>
+          <rect x="48" y="4" width="20" height="20" fill="#0f380f"/>
+          <rect x="70" y="4" width="20" height="20" fill="#0f380f"/>
+          <text x="50" y="29" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">★ ETCH BAY 03</text>
+          <!-- 엔지니어 (좌측) -->
+          <g transform="translate(14, 36)">
+            <use href="#engineer-tool-sprite" width="13" height="13"/>
+          </g>
+          <!-- TOOL + 국소배기 (설치된 상태) -->
+          <g transform="translate(48, 34)">
+            <use href="#tool-with-exhaust-sprite" width="22" height="22"/>
+          </g>
+          <!-- AIR 태그 신호 (국소배기 위에서 발신) -->
+          <circle cx="60" cy="30" r="3" fill="none" stroke="#9bbc0f" stroke-width="0.8">
+            <animate attributeName="r" values="3;8;3" dur="1.2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <!-- 체크 마크 -->
+          <rect x="72" y="34" width="12" height="12" fill="#0f380f"/>
+          <rect x="74" y="36" width="8" height="8" fill="#9bbc0f"/>
+          <text x="78" y="43" font-family="monospace" font-size="7" text-anchor="middle" fill="#0f380f" font-weight="bold">✓</text>
+          <!-- 바닥 -->
+          <rect x="0" y="58" width="100" height="12" fill="#306230"/>
+        </svg>
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gb-darkest);
+          background:var(--gb-light);border:2px solid var(--gb-darkest);padding:4px 8px;
+          box-shadow:2px 2px 0 var(--gb-darkest);">
+          🛠 국소배기 설치 완료 ✓
+        </div>
+      </div>
+    `;
+    sndRegister();
+    setStoryDialog(
+      '🛠 <b>TOOL 도착!</b><br>국소배기 설치 완료!<br>이제 작업 준비가 됐어 💪',
+      '▶ 작업 시작!',
+      nextChapter2Step
+    );
+  },
+
+  // Scene 5: 작업 시작! + CHAPTER 2 CLEAR
+  function c2_work_start() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <svg viewBox="0 0 100 70" shape-rendering="crispEdges" style="width:200px;height:140px;image-rendering:pixelated;">
+          <!-- 배경 -->
+          <rect x="0" y="0" width="100" height="70" fill="#8bac0f"/>
+          <rect x="0" y="0" width="100" height="30" fill="#306230"/>
+          <rect x="4" y="4" width="20" height="20" fill="#0f380f"/>
+          <rect x="26" y="4" width="20" height="20" fill="#0f380f"/>
+          <rect x="48" y="4" width="20" height="20" fill="#0f380f"/>
+          <rect x="70" y="4" width="20" height="20" fill="#0f380f"/>
+          <!-- 설비 안 작업 중 LED (깜빡) -->
+          <rect x="6" y="6" width="4" height="4" fill="#9bbc0f">
+            <animate attributeName="fill" values="#9bbc0f;#306230;#9bbc0f" dur="0.6s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="12" y="6" width="4" height="4" fill="#8bac0f">
+            <animate attributeName="fill" values="#8bac0f;#0f380f;#8bac0f" dur="0.8s" repeatCount="indefinite"/>
+          </rect>
+          <text x="50" y="28" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">작업 중...</text>
+          <!-- 바닥 -->
+          <rect x="0" y="30" width="100" height="40" fill="#8bac0f"/>
+          <!-- 엔지니어 1 (렌치 들고 설비 앞) -->
+          <g transform="translate(18, 34)">
+            <use href="#engineer-tool-sprite" width="13" height="13"/>
+          </g>
+          <!-- 엔지니어 2 (설비 옆) -->
+          <g transform="translate(34, 34)">
+            <use href="#engineer-sprite" width="13" height="13"/>
+          </g>
+          <!-- TOOL (옆에 대기, 국소배기 탑재 상태) -->
+          <g transform="translate(54, 34)">
+            <use href="#tool-with-exhaust-sprite" width="20" height="20"/>
+          </g>
+          <!-- AIR 신호 (상단에서 계속 발신) -->
+          <circle cx="65" cy="30" r="2" fill="none" stroke="#9bbc0f" stroke-width="0.6">
+            <animate attributeName="r" values="2;6;2" dur="1.4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.8;0;0.8" dur="1.4s" repeatCount="indefinite"/>
+          </circle>
+          <!-- 스파크 효과 (작업 중) -->
+          <g>
+            <rect x="23" y="32" width="1" height="1" fill="#9bbc0f">
+              <animate attributeName="opacity" values="0;1;0" dur="0.4s" repeatCount="indefinite"/>
+              <animate attributeName="x" values="23;25;22;24" dur="0.4s" repeatCount="indefinite"/>
+              <animate attributeName="y" values="32;30;31;33" dur="0.4s" repeatCount="indefinite"/>
+            </rect>
+            <rect x="26" y="31" width="1" height="1" fill="#9bbc0f">
+              <animate attributeName="opacity" values="1;0;1" dur="0.3s" repeatCount="indefinite"/>
+              <animate attributeName="x" values="26;24;27;25" dur="0.3s" repeatCount="indefinite"/>
+            </rect>
+          </g>
+          <!-- SAFER 미니 (우측 구석) -->
+          <g transform="translate(80, 36)">
+            <use href="#safer-sprite" width="14" height="14"/>
+          </g>
+          <rect x="60" y="52" width="30" height="12" fill="#0f380f" rx="1"/>
+          <text x="75" y="60" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">FAB 환경 정상! ✓</text>
+        </svg>
+      </div>
+    `;
+    sndEnding();
+    setStoryDialog(
+      '🔧 <b>BM 작업 시작!</b><br>국소배기 + TOOL 대기 + SAFER 모니터링.<br>완벽한 팀플레이야! 👏',
+      null, null
+    );
+    // 3초 뒤 자동으로 CHAPTER 2 CLEAR
+    setTimeout(() => chapter2Complete(), 3200);
+  },
+];
+
+function chapter2Complete() {
+  clearStoryStage();
+  const stage = document.getElementById('story-stage-content');
+  stage.innerHTML = `
+    <div class="chapter-clear">
+      <div class="chapter-clear-title">✦ CHAPTER 2 CLEAR ✦</div>
+      <div class="chapter-clear-msg">
+        🛠 <b>국소배기 확보 완료!</b><br>
+        TOOL + AIR의 완벽한 콜라보였어.<br>
+        이제 본격 BM 작업 시작! 💪
+      </div>
+      <div class="chapter-clear-next" id="chapter2-next">▶ 챕터 3으로 계속</div>
+    </div>
+  `;
+  sndRegister();
+  document.getElementById('chapter2-next').onclick = () => {
+    sndRegister();
+    startChapter3();
+  };
+  setStoryDialog(
+    'TOOL과 AIR가 함께라면 뭐든 해결!<br>다음은 렌치가 없다? 🔧',
+    null, null
+  );
+}
+
+// ─────────────────────────────────────────────
+//  CHAPTER 3: 렌치가 없다! PARTS 호출
+// ─────────────────────────────────────────────
+function startChapter3() {
+  STORY.chapter = 3;
+  STORY.step = 0;
+  document.getElementById('story-chapter-tag').textContent = 'CHAPTER 3';
+  clearStoryStage();
+  playChapter3Scene(0);
+}
+
+function playChapter3Scene(idx) {
+  STORY.step = idx;
+  if (idx >= CHAPTER_3_SCENES.length) {
+    chapter3Complete();
+    return;
+  }
+  clearStoryStage();
+  CHAPTER_3_SCENES[idx]();
+}
+
+function nextChapter3Step() {
+  sndNext();
+  playChapter3Scene(STORY.step + 1);
+}
+
+const CHAPTER_3_SCENES = [
+
+  // Scene 0: 렌치가 없네!
+  function c3_no_wrench() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+        <svg viewBox="0 0 80 60" shape-rendering="crispEdges" style="width:160px;height:120px;image-rendering:pixelated;">
+          <rect x="0" y="0" width="80" height="60" fill="#8bac0f"/>
+          <rect x="0" y="0" width="80" height="28" fill="#306230"/>
+          <rect x="4" y="4" width="14" height="18" fill="#0f380f"/>
+          <rect x="20" y="4" width="14" height="18" fill="#0f380f"/>
+          <rect x="38" y="4" width="14" height="18" fill="#0f380f"/>
+          <rect x="54" y="4" width="20" height="18" fill="#0f380f"/>
+          <!-- 국소배기 (이미 설치됨) -->
+          <g transform="translate(52, 30)">
+            <use href="#tool-with-exhaust-sprite" width="14" height="14"/>
+          </g>
+          <text x="40" y="27" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">★ ETCH BAY 03</text>
+          <!-- 엔지니어 (주머니 뒤지는 모션) -->
+          <g transform="translate(20, 32)">
+            <use href="#engineer-sprite" width="13" height="13"/>
+          </g>
+          <!-- 빈 공구함 표시 -->
+          <rect x="34" y="34" width="14" height="14" fill="#0f380f" stroke="#9bbc0f" stroke-width="0.5" stroke-dasharray="2,1"/>
+          <text x="41" y="40" font-family="monospace" font-size="3" text-anchor="middle" fill="#8bac0f">공구함</text>
+          <text x="41" y="46" font-family="monospace" font-size="5" text-anchor="middle" fill="#9bbc0f">?</text>
+        </svg>
+      </div>
+    `;
+    setStoryDialog(
+      '"어?! 이번엔 렌치가 없네!?" 😱<br>공구함을 열었는데 렌치가 없어...<br>PARTS를 불러야겠어!',
+      '▶ 계속',
+      nextChapter3Step
+    );
+  },
+
+  // Scene 1: 라인폰 → PARTS 호출
+  function c3_call_parts() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-header">▍CONNECT CALL▍</div>
+          <div class="phone-app"><span>🚙 RIDE 호출</span><span class="phone-app-arrow"> </span></div>
+          <div class="phone-app"><span>🛠 TOOL 호출</span><span class="phone-app-arrow"> </span></div>
+          <div class="phone-app selected">
+            <span>🗄 PARTS 호출</span><span class="phone-app-arrow">▶</span>
+          </div>
+          <button class="phone-call-btn" id="parts-call-btn">▶ 렌치 요청</button>
+        </div>
+        <div class="phone-home"></div>
+      </div>
+    `;
+    document.getElementById('parts-call-btn').onclick = () => { sndOpen(); nextChapter3Step(); };
+    setStoryDialog(
+      '📱 <b>PARTS 호출!</b><br>"렌치 하나만 ETCH BAY 03으로<br>가져다줄 수 있어?"',
+      null, null
+    );
+  },
+
+  // Scene 2: PARTS가 렌치 싣고 FAB 맵 이동
+  function c3_parts_travel() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div class="fab-travel-wrap">
+        <svg viewBox="0 0 200 100" shape-rendering="crispEdges" class="fab-travel-svg">
+          <rect x="0" y="0" width="200" height="100" fill="#0f380f"/>
+          <rect x="0" y="0" width="200" height="30" fill="#306230"/>
+          <rect x="2" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="34" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="66" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="98" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="130" y="3" width="30" height="22" fill="#0f380f"/>
+          <rect x="162" y="3" width="36" height="22" fill="#0f380f"/>
+          <!-- ETCH 강조 -->
+          <rect x="66" y="5" width="26" height="18" fill="#306230" stroke="#9bbc0f" stroke-width="0.5">
+            <animate attributeName="stroke" values="#9bbc0f;#8bac0f;#9bbc0f" dur="0.8s" repeatCount="indefinite"/>
+          </rect>
+          <text x="79" y="11" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">ETCH</text>
+          <text x="79" y="16" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f" font-weight="bold">★BAY03</text>
+          <text x="17" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">PHOTO</text>
+          <text x="49" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">CMP</text>
+          <text x="113" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">4-MOD</text>
+          <text x="145" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">DIFF</text>
+          <text x="180" y="29" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">RCS</text>
+          <!-- 메인 통로 -->
+          <rect x="0" y="32" width="200" height="34" fill="#8bac0f"/>
+          <rect x="3" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="13" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="23" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="33" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="43" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="53" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="63" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="73" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="83" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="93" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="103" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="113" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="123" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="133" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="143" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="153" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="163" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="173" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="183" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <rect x="193" y="48" width="5" height="2" fill="#9bbc0f"/>
+          <!-- 목적지 마커 -->
+          <circle cx="79" cy="50" r="5" fill="none" stroke="#0f380f" stroke-width="1">
+            <animate attributeName="r" values="5;9;5" dur="1.2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;0.2;1" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <text x="79" y="62" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#0f380f" font-weight="bold">BAY 03</text>
+          <!-- 하단 설비 -->
+          <rect x="0" y="68" width="200" height="32" fill="#306230"/>
+          <rect x="2" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="34" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="66" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="98" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="130" y="71" width="30" height="22" fill="#0f380f"/>
+          <rect x="162" y="71" width="36" height="22" fill="#0f380f"/>
+          <text x="17" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">DIFF</text>
+          <text x="49" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">IMP</text>
+          <text x="81" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">METAL</text>
+          <text x="113" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">METRO</text>
+          <text x="145" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">PROBE</text>
+          <text x="180" y="99" font-family="monospace" font-size="3.5" text-anchor="middle" fill="#9bbc0f">RCS</text>
+          <!-- PARTS 렌치 싣고 이동 (좌측에서 출발) -->
+          <g id="parts-travel-bot" transform="translate(-24, 38)">
+            <use href="#parts-with-wrench-sprite" width="22" height="22"/>
+            <animateTransform
+              attributeName="transform" type="translate"
+              values="-24 38; -4 38; 16 38; 36 38; 52 38; 64 38; 70 38; 75 38"
+              keyTimes="0; 0.14; 0.28; 0.42; 0.56; 0.7; 0.85; 1"
+              dur="4s" fill="freeze" begin="0.3s"
+              calcMode="discrete"/>
+          </g>
+        </svg>
+        <div class="fab-progress">
+          <div class="fab-progress-label" id="parts-progress-label">PARTS 출발 → ETCH BAY 03   0%</div>
+          <div class="fab-progress-bar">
+            <div class="fab-progress-fill" id="parts-progress-fill"></div>
+          </div>
+        </div>
+        </div>
+      </div>
+    `;
+    setStoryDialog(
+      '🗄 <b>PARTS 출동!</b><br>"렌치 싣고 BAY 03으로 이동 중..."<br>스마트 락커에서 꺼내서 가져가는 중!',
+      null, null
+    );
+    sndPage();
+    setTimeout(() => {
+      const fill = document.getElementById('parts-progress-fill');
+      if (fill) fill.style.width = '100%';
+      let pct = 0;
+      const tick = setInterval(() => {
+        pct += 4;
+        if (pct > 100) pct = 100;
+        const label = document.getElementById('parts-progress-label');
+        if (label) label.textContent = `PARTS 출발 → ETCH BAY 03   ${pct}%`;
+        if (pct >= 100) {
+          clearInterval(tick);
+          if (label) label.textContent = `★ BAY 03 도착! ✓`;
+        }
+      }, 160);
+      setTimeout(() => sndHover(), 1500);
+      setTimeout(() => sndHover(), 3000);
+    }, 300);
+    setTimeout(() => { sndRegister(); nextChapter3Step(); }, 4500);
+  },
+
+  // Scene 3: PARTS 도착 + 락커 열림
+  function c3_parts_arrived() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <svg viewBox="0 0 100 70" shape-rendering="crispEdges" style="width:200px;height:140px;image-rendering:pixelated;">
+          <rect x="0" y="0" width="100" height="70" fill="#8bac0f"/>
+          <rect x="0" y="0" width="100" height="28" fill="#306230"/>
+          <rect x="4" y="4" width="20" height="18" fill="#0f380f"/>
+          <rect x="26" y="4" width="20" height="18" fill="#0f380f"/>
+          <rect x="48" y="4" width="20" height="18" fill="#0f380f"/>
+          <rect x="70" y="4" width="26" height="18" fill="#0f380f"/>
+          <text x="50" y="27" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">★ ETCH BAY 03</text>
+          <rect x="0" y="28" width="100" height="42" fill="#8bac0f"/>
+          <!-- 엔지니어 -->
+          <g transform="translate(10, 34)">
+            <use href="#engineer-tool-sprite" width="13" height="13"/>
+          </g>
+          <!-- PARTS 도착 -->
+          <g transform="translate(28, 32)">
+            <use href="#parts-with-wrench-sprite" width="22" height="22"/>
+          </g>
+          <!-- 락커 열림 애니메이션 -->
+          <rect x="58" y="32" width="8" height="12" fill="#0f380f"/>
+          <rect x="59" y="33" width="6" height="10" fill="#306230"/>
+          <!-- 락커 문 열림 -->
+          <rect x="58" y="32" width="3" height="12" fill="#306230">
+            <animate attributeName="width" values="3;1;0" dur="0.8s" begin="0.5s" fill="freeze"/>
+          </rect>
+          <!-- 렌치 튀어나옴 -->
+          <g opacity="0">
+            <rect x="64" y="34" width="1" height="1" fill="#9bbc0f"/>
+            <rect x="65" y="35" width="1" height="1" fill="#9bbc0f"/>
+            <rect x="66" y="36" width="1" height="1" fill="#9bbc0f"/>
+            <rect x="67" y="36" width="2" height="1" fill="#9bbc0f"/>
+            <rect x="68" y="34" width="1" height="2" fill="#9bbc0f"/>
+            <rect x="69" y="34" width="1" height="2" fill="#9bbc0f"/>
+            <animate attributeName="opacity" values="0;1" begin="1.2s" dur="0.3s" fill="freeze"/>
+          </g>
+          <!-- 체크 마크 -->
+          <rect x="74" y="34" width="12" height="12" fill="#0f380f"/>
+          <rect x="76" y="36" width="8" height="8" fill="#9bbc0f"/>
+          <text x="80" y="43" font-family="monospace" font-size="7" text-anchor="middle" fill="#0f380f" font-weight="bold">✓</text>
+          <rect x="0" y="58" width="100" height="12" fill="#306230"/>
+        </svg>
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gb-darkest);
+          background:var(--gb-light);border:2px solid var(--gb-darkest);padding:4px 8px;
+          box-shadow:2px 2px 0 var(--gb-darkest);">
+          🔧 렌치 수령 완료 ✓
+        </div>
+      </div>
+    `;
+    sndRegister();
+    setStoryDialog(
+      '🗄 <b>PARTS 도착!</b><br>스마트 락커 열림... 렌치 꺼냈어!<br>"수고해줘서 고마워, PARTS!" 🙏',
+      '▶ 작업 시작!',
+      nextChapter3Step
+    );
+  },
+
+  // Scene 4: 렌치 획득 + 작업 완료!
+  function c3_work_complete() {
+    const stage = document.getElementById('story-stage-content');
+    stage.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <svg viewBox="0 0 100 70" shape-rendering="crispEdges" style="width:200px;height:140px;image-rendering:pixelated;">
+          <rect x="0" y="0" width="100" height="70" fill="#8bac0f"/>
+          <rect x="0" y="0" width="100" height="28" fill="#306230"/>
+          <rect x="4" y="4" width="20" height="18" fill="#0f380f"/>
+          <rect x="26" y="4" width="20" height="18" fill="#0f380f"/>
+          <rect x="48" y="4" width="20" height="18" fill="#0f380f"/>
+          <rect x="70" y="4" width="26" height="18" fill="#0f380f"/>
+          <!-- 설비 LED 작업 중 깜빡 -->
+          <rect x="6" y="6" width="4" height="4" fill="#9bbc0f">
+            <animate attributeName="fill" values="#9bbc0f;#306230;#9bbc0f" dur="0.5s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="12" y="6" width="4" height="4" fill="#8bac0f">
+            <animate attributeName="fill" values="#8bac0f;#0f380f;#8bac0f" dur="0.7s" repeatCount="indefinite"/>
+          </rect>
+          <text x="50" y="27" font-family="monospace" font-size="4" text-anchor="middle" fill="#9bbc0f" font-weight="bold">BM 작업 완료!</text>
+          <rect x="0" y="28" width="100" height="42" fill="#8bac0f"/>
+          <!-- 엔지니어 1 (렌치 들고 설비 앞) -->
+          <g transform="translate(10, 34)">
+            <use href="#engineer-tool-sprite" width="13" height="13"/>
+          </g>
+          <!-- 엔지니어 2 -->
+          <g transform="translate(26, 34)">
+            <use href="#engineer-sprite" width="13" height="13"/>
+          </g>
+          <!-- TOOL (국소배기 탑재, 대기) -->
+          <g transform="translate(44, 34)">
+            <use href="#tool-with-exhaust-sprite" width="20" height="20"/>
+          </g>
+          <!-- PARTS (대기) -->
+          <g transform="translate(68, 34)">
+            <use href="#parts-sprite" width="18" height="18"/>
+          </g>
+          <!-- SAFER (모니터링 중) -->
+          <g transform="translate(82, 34)">
+            <use href="#safer-sprite" width="14" height="14"/>
+          </g>
+          <!-- SAFER 말풍선 -->
+          <rect x="60" y="52" width="36" height="10" fill="#0f380f" rx="1"/>
+          <text x="78" y="59" font-family="monospace" font-size="3" text-anchor="middle" fill="#9bbc0f">FAB 환경 정상! ✓</text>
+          <!-- 완료 스파크들 -->
+          <rect x="22" y="30" width="1" height="1" fill="#9bbc0f">
+            <animate attributeName="opacity" values="0;1;0" dur="0.3s" repeatCount="indefinite"/>
+            <animate attributeName="x" values="22;24;21;23" dur="0.3s" repeatCount="indefinite"/>
+            <animate attributeName="y" values="30;28;29;31" dur="0.3s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="18" y="32" width="1" height="1" fill="#9bbc0f">
+            <animate attributeName="opacity" values="1;0;1" dur="0.4s" repeatCount="indefinite"/>
+            <animate attributeName="x" values="18;20;17;19" dur="0.4s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="0" y="58" width="100" height="12" fill="#306230"/>
+        </svg>
+      </div>
+    `;
+    sndEnding();
+    setStoryDialog(
+      '🔧 <b>BM 작업 완료!</b><br>RIDE + TOOL + PARTS + SAFER<br>모두의 팀플레이로 해냈어! 🎉',
+      null, null
+    );
+    setTimeout(() => chapter3Complete(), 3500);
+  },
+];
+
+function chapter3Complete() {
+  clearStoryStage();
+  const stage = document.getElementById('story-stage-content');
+  stage.innerHTML = `
+    <div class="chapter-clear">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gb-darkest);
+        letter-spacing:1px;text-align:center;margin-bottom:6px;">
+        ✦ ALL CHAPTERS CLEAR ✦
+      </div>
+      <svg viewBox="0 0 80 24" shape-rendering="crispEdges" style="width:160px;height:48px;image-rendering:pixelated;margin:4px auto;display:block;">
+        <use href="#wave-with-engineers-sprite" x="0" y="0" width="18" height="18"/>
+        <use href="#tool-with-exhaust-sprite" x="20" y="0" width="18" height="18"/>
+        <use href="#parts-sprite" x="42" y="0" width="18" height="18"/>
+        <use href="#safer-sprite" x="62" y="0" width="18" height="18"/>
+      </svg>
+      <div class="chapter-clear-msg">
+        첫 출근날 BM 작업 완료! 🎓<br>
+        <span style="font-size:10px;">RIDE · TOOL · PARTS · SAFER · AIR</span><br>
+        <span style="font-size:10px;">Connect 패밀리와 함께라면 뭐든 OK!</span>
+      </div>
+      <div class="chapter-clear-next" id="chapter3-next">▶ 처음으로</div>
+    </div>
+  `;
+  sndEnding();
+  setTimeout(() => sndEnding(), 800);
+  document.getElementById('chapter3-next').onclick = () => {
+    stopSaferLoop();
+    goTitle();
+  };
+  setStoryDialog(
+    '🎉 <b>첫 출근 미션 완료!</b><br>수고했어! 이제 진짜 FAB의 일원이야 🏭',
+    null, null
+  );
+}
+
+// 키보드: 스토리에서 SPACE = next 클릭과 동일
+function storyKeyHandler(e) {
+  if (!STORY.active) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    const nextBtn = document.getElementById('story-next-btn');
+    if (nextBtn) nextBtn.click();
+    e.preventDefault();
+  }
+}
+
+// ========================================
+//  PLAYER MOVEMENT (진또배기 RPG!)
+// ========================================
+const PLAYER_W = 14;
+const PLAYER_H = 14;
+const PLAYER_SPEED = 0.5;
+const ENCOUNTER_RADIUS = 13;
+
+// 플레이어 위치 (좌상단 좌표, SVG viewBox 기준)
+let playerX = 6;
+let playerY = 42;
+
+// 키 상태
+const keys = {up: false, down: false, left: false, right: false};
+window.keys = keys; // updateMapStatus에서 접근용
+
+// 각 동료 캐릭터의 중심 좌표 (SVG viewBox 기준)
+const CHAR_CENTERS = [
+  {idx: 0, x: 78, y: 48},   // RIDE
+  {idx: 1, x: 43, y: 43},   // TOOL
+  {idx: 2, x: 111, y: 53},  // PARTS
+  {idx: 3, x: 12, y: 49},   // SAFER
+  {idx: 4, x: 139, y: 51},  // AIR
+];
+
+let nearestChar = -1;
+let lastHintText = '';
+
+// 이동 가능 영역 (메인 통로 안)
+function clampPlayer(x, y) {
+  // 외곽 + 메인 통로 영역
+  x = Math.max(2, Math.min(158 - PLAYER_W, x));
+  y = Math.max(30, Math.min(64 - PLAYER_H, y));
+  return {x, y};
+}
+
+// 근처 동료 검출
+function findNearestChar() {
+  const cx = playerX + PLAYER_W / 2;
+  const cy = playerY + PLAYER_H / 2;
+  let near = -1;
+  let minDist = ENCOUNTER_RADIUS;
+  for (const c of CHAR_CENTERS) {
+    const dx = c.x - cx;
+    const dy = c.y - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < minDist) {
+      minDist = dist;
+      near = c.idx;
+    }
+  }
+  return near;
+}
+
+// 힌트 마커 + 텍스트 업데이트
+function updateInteractionHint() {
+  const marker = document.getElementById('hint-marker');
+  const hintEl = document.getElementById('map-hint');
+  if (!marker || !hintEl) return;
+  
+  if (nearestChar === -1) {
+    marker.setAttribute('visibility', 'hidden');
+    const defaultHint = metChars.size === 5
+      ? '✦ 모든 동료를 만났어요! 다시 만나보세요!'
+      : '<span class="key-icon">↑↓←→</span> 이동 · <span class="key-icon">SPACE</span> 대화';
+    if (lastHintText !== defaultHint) {
+      hintEl.innerHTML = defaultHint;
+      lastHintText = defaultHint;
+    }
+  } else {
+    const c = CHAR_CENTERS[nearestChar];
+    const robotName = ROBOTS[nearestChar].name;
+    marker.setAttribute('visibility', 'visible');
+    // 캐릭터 바로 옆 (오른쪽 위)에 ! 표시
+    marker.setAttribute('transform', `translate(${c.x + 12}, ${c.y - 2})`);
+    const newHint = `▶ <span class="key-icon action">SPACE</span>를 눌러 <b>${robotName}</b>와(과) 대화!`;
+    if (lastHintText !== newHint) {
+      hintEl.innerHTML = newHint;
+      lastHintText = newHint;
+    }
+  }
+}
+
+// 게임 루프
+function gameLoop() {
+  const active = document.querySelector('.screen-view.active');
+  if (active && active.id === 'map') {
+    // 이동
+    let nx = playerX, ny = playerY;
+    if (keys.up) ny -= PLAYER_SPEED;
+    if (keys.down) ny += PLAYER_SPEED;
+    if (keys.left) nx -= PLAYER_SPEED;
+    if (keys.right) nx += PLAYER_SPEED;
+    
+    const clamped = clampPlayer(nx, ny);
+    playerX = clamped.x;
+    playerY = clamped.y;
+    
+    // SVG 플레이어 위치 갱신
+    const playerEl = document.getElementById('player');
+    if (playerEl) {
+      playerEl.setAttribute('transform', `translate(${playerX}, ${playerY})`);
+    }
+    
+    // 근접 동료 검출
+    const near = findNearestChar();
+    if (near !== nearestChar) {
+      nearestChar = near;
+      updateInteractionHint();
+      if (near !== -1) sndHover();
+    }
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// 페이지 로드 후 게임 루프 시작
+window.addEventListener('load', () => {
+  gameLoop();
+});
+// 만약 load 이미 지났으면 바로
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(() => gameLoop(), 100);
+}
+
+// 인카운터 시작 시 키 리셋 (encounter 함수 wrap)
+const _origEncounter = encounter;
+encounter = function(idx) {
+  keys.up = keys.down = keys.left = keys.right = false;
+  nearestChar = -1;
+  const marker = document.getElementById('hint-marker');
+  if (marker) marker.setAttribute('visibility', 'hidden');
+  _origEncounter(idx);
+};
+
+
+// ========================================
+//  SAFER 차트 모달
+// ========================================
+function showSaferChart() {
+  sndOpen();
+  const modal = document.getElementById('safer-modal');
+  modal.classList.add('show');
+  // 바 애니메이션 (약간 딜레이 후 채움)
+  setTimeout(() => {
+    document.getElementById('chart-particle').style.width = '18%';  // 낮을수록 좋음
+    document.getElementById('chart-pressure').style.width = '62%';  // 적정 양압
+    document.getElementById('chart-ocap').style.width = '98%';      // 높을수록 좋음
+    document.getElementById('chart-temp').style.width = '55%';      // 22°C 정상 범위
+  }, 100);
+  // 도감에도 SAFER 등록
+  if (!metChars.has(3)) {
+    metChars.add(3);
+    updateMapStatus();
+    renderDex();
+    setTimeout(sndRegister, 300);
+  }
+}
+
+function hideSaferChart() {
+  sndPage();
+  document.getElementById('safer-modal').classList.remove('show');
+  ['chart-particle','chart-pressure','chart-ocap','chart-temp'].forEach(id => {
+    document.getElementById(id).style.width = '0%';
+  });
+}
+
+// 스토리 화면용 SAFER 차트
+function showSaferChartStory() {
+  sndOpen();
+  const modal = document.getElementById('safer-modal-story');
+  if (!modal) return;
+  modal.classList.add('show');
+  setTimeout(() => {
+    const ids = ['s-chart-particle','s-chart-pressure','s-chart-ocap','s-chart-temp'];
+    const vals = ['18%','62%','98%','55%'];
+    ids.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (el) el.style.width = vals[i];
+    });
+  }, 100);
+}
+
+function hideSaferChartStory() {
+  sndPage();
+  const modal = document.getElementById('safer-modal-story');
+  if (!modal) return;
+  modal.classList.remove('show');
+  ['s-chart-particle','s-chart-pressure','s-chart-ocap','s-chart-temp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.width = '0%';
+  });
+}
+
+// ========================================
+//  KEYBOARD (이동 + 대화)
+// ========================================
+function setKey(e, val) {
+  const k = e.key;
+  if (k === 'ArrowUp' || k === 'w' || k === 'W') { keys.up = val; e.preventDefault(); }
+  if (k === 'ArrowDown' || k === 's' || k === 'S') { keys.down = val; e.preventDefault(); }
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = val; e.preventDefault(); }
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = val; e.preventDefault(); }
+}
+
+document.addEventListener('keydown', (e) => {
+  // 튜토리얼 활성화된 동안은 키 입력으로 닫음
+  if (tutorialActive) {
+    hideTutorial();
+    e.preventDefault();
+    return;
+  }
+  
+  const active = document.querySelector('.screen-view.active').id;
+  
+  // 스토리 모드: SPACE/ENTER = next 클릭, ESC = 스토리 빠져나가기
+  if (active === 'story') {
+    if (typeof storyKeyHandler === 'function') storyKeyHandler(e);
+    if (e.key === 'Escape' || e.key === 'Backspace') {
+      if (typeof STORY !== 'undefined') STORY.active = false;
+      if (typeof stopSaferLoop === 'function') stopSaferLoop();
+      goTitle();
+    }
+    return;
+  }
+  
+  // 맵 화면: 이동 키 + SPACE = 대화 (근처 동료 있을 때)
+  if (active === 'map') {
+    setKey(e, true);
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (nearestChar !== -1) {
+        encounter(nearestChar);
+      }
+      e.preventDefault();
+    }
+  }
+  // 다른 화면들
+  else {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (active === 'title') goIntro();
+      else if (active === 'intro') goMap();
+      else if (active === 'encounter') encClose();
+    }
+  }
+  
+  // ESC/Backspace는 어디서나
+  if (e.key === 'Escape' || e.key === 'Backspace') {
+    if (active === 'detail') goDex();
+    else if (active === 'dex') goMap();
+    else if (active === 'map') goTitle();
+    else if (active === 'encounter') encClose();
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  setKey(e, false);
+});
+
+// Service Worker 등록 (PWA 오프라인 지원)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(() => console.log('SW 등록 완료'))
+      .catch(e => console.log('SW 등록 실패 (로컬 파일은 정상):', e));
+  });
+}
+</script>
+</body>
+</html>
